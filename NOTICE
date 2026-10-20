@@ -1,5 +1,11 @@
-This image redistributes the Kangaroo MuJoCo models (MJCF + meshes) from PAL Robotics'
-`kangaroo_mujoco` ROS 2 package (ros-humble-kangaroo-mujoco), licensed under the
-Apache License 2.0. Its package.xml is kept at /opt/kangaroo/package.xml in the image.
+This repository builds on third-party software and data:
 
-LIBERO (hf-libero), robosuite and MuJoCo are installed from PyPI under their own licenses.
+- pal_mjlab (PAL Robotics): Kangaroo model and mjlab integration, Apache License 2.0.
+  https://github.com/pal-robotics/pal_mjlab
+- LIBERO: MIT License. https://github.com/Lifelong-Robot-Learning/LIBERO
+- robosuite v1.5.2: the water bottle asset (bottle.xml, mesh, texture), MIT License.
+  https://github.com/ARISE-Initiative/robosuite
+- Google Scanned Objects, via https://github.com/kevinzakka/mujoco_scanned_objects (repo MIT;
+  models CC-BY 4.0, (c) Google Research). Used models:
+  "Cole_Hardware_Mug_Classic_Blue" (cup) and "Threshold_Bead_Cereal_Bowl_White" (bowl).
+- Seated setup: seated_setup_for_libero (seated_setup.json, version 2026-10-19).

@@ -1,22 +1,22 @@
-# Kangaroo LIBERO Environment
+# Robot-learning Environment
 
-A ready-to-run simulation environment that puts PAL Robotics' Kangaroo humanoid into LIBERO's manipulation scenes, so the team can train RL policies on it. This project provides the environment only; the RL algorithms belong to the team.
+A ready-to-run Docker environment with a seated Kangaroo scene (MuJoCo / mjlab) and the original LIBERO, for robot-learning work such as seated upper-limb rehab. This project provides the environment only; the RL algorithms belong to the team.
 
 ## Language
 
 ### Robot
 
 **Kangaroo**:
-PAL Robotics' bipedal humanoid, as modelled in PAL's public `kangaroo_mujoco` package.
+PAL Robotics' bipedal humanoid, as modelled in PAL's `pal_mjlab`.
 _Avoid_: the robot, PAL robot, humanoid
 
-**Kangaroo variant**:
-One of PAL's pre-generated Kangaroo models, differing in base (floating or fixed), arm DoF and end-effector (e.g. `floating_5dof_RH8D_RH8D_fixed`: 5-DoF arms with RH8D hands).
-_Avoid_: config, version, flavour
+**pal_mjlab**:
+PAL Robotics' mjlab package that provides the Kangaroo model, its actuators and the mjlab (MuJoCo Warp) tooling this project builds on.
+_Avoid_: kangaroo_mujoco, ROS package
 
-**Welded base**:
-The Kangaroo pelvis rigidly fixed in the world so the robot cannot fall; a simplification that separates manipulation from balance.
-_Avoid_: fixed robot, pinned base
+**Fixed base**:
+The Kangaroo pelvis held at the seated pose on the chair, with legs and trunk locked, so the robot cannot fall; arms stay free.
+_Avoid_: welded base, pinned robot
 
 ### LIBERO
 
@@ -38,10 +38,10 @@ _Avoid_: world, map, level
 
 ### This project
 
-**Combined scene**:
-A Kangaroo variant attached into a LIBERO arena in a single MuJoCo model; physics and cameras work, but LIBERO task logic is not wired to Kangaroo.
-_Avoid_: Kangaroo LIBERO task, integrated env
+**Seated scene**:
+Kangaroo seated on a chair at a table with a cup, water bottle and bowl, in plain MuJoCo (`make_model`) or mjlab (`make_scene_cfg`). It has no task, reward or goal.
+_Avoid_: combined scene, LIBERO task for Kangaroo
 
-**Smoke test**:
-The checks that prove the environment works end to end: pinned versions, LIBERO runs headless, Kangaroo loads, the combined scene steps and renders.
-_Avoid_: unit tests, benchmark
+**Tests**:
+The pytest suite (`pytest -v tests`) that proves the environment works: both envs, the seated scene, the mjlab scene and the viewer's video path.
+_Avoid_: smoke test

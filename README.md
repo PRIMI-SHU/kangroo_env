@@ -1,93 +1,76 @@
-# Kangaroo + LIBERO + MuJoCo environment
+# robot-learning: seated Kangaroo + LIBERO environments
 
-A Docker image that puts PAL Robotics' **Kangaroo** humanoid into **LIBERO** manipulation scenes,
-simulated with **MuJoCo**, ready for the team to plug RL algorithms into.
-Scope: the environment only. Terms used here are defined in [CONTEXT.md](CONTEXT.md).
+A Docker image for robot-learning work with PAL Robotics' **Kangaroo** humanoid. It has two Python
+environments and one task-free scene: Kangaroo seated on a chair at a table with a cup, a water
+bottle and a bowl, for seated upper-limb rehab work. There is no task or suite to pick; it is just a working simulation.
+Terms are defined in [CONTEXT.md](CONTEXT.md).
 
-![Kangaroo at the LIBERO table](out/kangaroo_libero.png)
+![Seated Kangaroo at the table](out/kangaroo_seated.png)
 
-## The pieces
+(`out/` is git-ignored; the image is written by `pytest -v tests`.)
 
-| Piece | What it is | Where it comes from |
+## Layout
+
+```
+setup.sh              clones pinned pal_mjlab and LIBERO, downloads object assets
+Dockerfile            two envs: /opt/venvs/mjlab (default) and /opt/venvs/libero
+kangaroo_seated/      the scene: scene.py (MjSpec), mjlab_cfg.py (mjlab SceneCfg), seated_setup.json
+view.py               live viewer or headless video
+tests/                pytest suite
+pal_mjlab/ LIBERO/ assets/   fetched by setup.sh (git-ignored)
+```
+
+| Env | Python | Contents |
 |---|---|---|
-| MuJoCo 3.8.x | Physics engine: simulates joints, contacts, cameras from MJCF (XML) models | PyPI `mujoco` |
-| LIBERO | Benchmark of 130 language-specified manipulation tasks (scenes + BDDL goals + demos), built on robosuite | PyPI `hf-libero==0.1.4` (pins robosuite 1.4.0, mujoco < 3.9) |
-| Kangaroo | PAL's biped humanoid; default variant has 5-DoF arms and RH8D hands (38 actuators) | MJCF copied from PAL's ROS 2 package `ros-humble-kangaroo-mujoco` at build time |
-
-ROS is used **only** in a throwaway build stage to obtain PAL's model files; the final image is
-plain Python, which keeps RL stepping fast and resets simple.
+| `/opt/venvs/mjlab` (default `python`) | 3.13 | pal_mjlab, mjlab 1.6.0, MuJoCo + MuJoCo Warp (PAL's lockfile) |
+| `/opt/venvs/libero` | 3.8 | original LIBERO with its own pinned requirements |
 
 ## Build and run
 
 ```bash
-docker build -t kangaroo-libero .
-docker run --rm --gpus all -v "$PWD/out:/app/out" kangaroo-libero      # runs the smoke test
-docker run --rm -it --gpus all kangaroo-libero bash                     # interactive shell
+./setup.sh                                  # clone pal_mjlab @52f5d6ed5d, LIBERO @8f1084e313, download assets
+docker build -t robot-learning .            # add --build-arg TORCH_EXTRA=cpu for a CPU-only torch
+docker run --rm -it --gpus all -v "$PWD:/workspace" robot-learning     # bash in /workspace
+pytest -v tests                             # inside the container
 ```
 
-No NVIDIA GPU: drop `--gpus all` (EGL falls back to software). If EGL is unavailable, add
-`-e MUJOCO_GL=osmesa -e PYOPENGL_PLATFORM=osmesa`. All three modes pass the smoke test.
+Or run the tests directly: `docker run --rm --gpus all -v "$PWD:/workspace" robot-learning pytest -v tests`.
 
-The smoke test (`test_smoke.py`) checks, in order:
-1. pinned versions (MuJoCo 3.8.x, robosuite 1.4.0) and LIBERO imports without its interactive setup prompt;
-2. a stock LIBERO task (with its Franka Panda) resets, steps and renders headless;
-3. PAL's Kangaroo loads and steps (38 actuators);
-4. the **combined scene**: LIBERO task arena + objects, Panda removed, Kangaroo attached; it steps,
-   the welded base holds, and a frame is written to `out/kangaroo_libero.png`;
-5. the **seated scene**: Kangaroo on a chair at the table, legs locked within real joint limits,
-   arms still driveable; a frame is written to `out/kangaroo_seated.png`.
+The first MuJoCo Warp run compiles kernels (about 4.5 minutes). Warp caches them in
+`/root/.cache/warp`, so mount it to keep them across runs: add `-v "$HOME/.cache/warp:/root/.cache/warp"` to `docker run`.
 
-## Watching the simulation
+## Viewing
 
-**Live 3D window** (Linux desktop; mouse to orbit/zoom, Space pause, Backspace reset):
+Live window (Linux desktop; mouse to orbit/zoom, Space pause, Backspace reset):
 
 ```bash
-xhost +local:docker          # once per login: let containers open windows on your screen
+xhost +local:docker
 docker run --rm -it --gpus all -e DISPLAY=$DISPLAY -e MUJOCO_GL=glfw -e PYOPENGL_PLATFORM= \
-  -v /tmp/.X11-unix:/tmp/.X11-unix kangaroo-libero python view.py
+  -v /tmp/.X11-unix:/tmp/.X11-unix -v "$PWD:/workspace" robot-learning python view.py
 ```
 
-**Video, no screen needed** (servers, clusters, SSH):
+Video, no screen needed:
 
 ```bash
-docker run --rm --gpus all -v "$PWD/out:/app/out" kangaroo-libero \
-  python view.py --video out/kangaroo.mp4 --seconds 5 --camera frontview
+docker run --rm --gpus all -v "$PWD:/workspace" robot-learning python view.py --video out/kangaroo.mp4 --seconds 5
 ```
 
-Options: `--seated` puts Kangaroo on a chair; `--suite libero_object --task 3` picks another LIBERO task; cameras are `frontview`,
-`agentview`, `sideview`, `birdview`, `galleryview`. With no controller, Kangaroo's 24 torque
-motors output zero, so the arms settle under gravity; driving them is the RL policy's job.
-`MESA ... iris` warnings in the live window are harmless (software OpenGL fallback).
-
-## Using it
+## Using the scene
 
 ```python
-import mujoco
-from kangaroo_libero import make_scene
+from kangaroo_seated import make_model, make_scene_cfg
 
-m, d, language = make_scene("libero_spatial", task_id=0)   # any LIBERO suite / task index
-print(language)                  # "pick up the black bowl between the plate and the ramekin ..."
-d.ctrl[:] = 0.0                  # 38 Kangaroo actuators: m.actuator(i).name
-mujoco.mj_step(m, d)
+m, d = make_model()            # plain MuJoCo: seated Kangaroo, chair, table, cup, bottle, bowl
+cfg = make_scene_cfg()         # mjlab SceneCfg (num_envs=1 by default) for mjlab tasks
 ```
 
-`make_scene(..., seated=True)` sits Kangaroo on a box chair for seated upper-limb (rehab) work:
-the pelvis is welded lower and the leg joints are held by equality constraints in a pose within
-PAL's real joint limits (`SEATED_LEGS`), so only arm and hand actuators have any effect.
+- In plain MuJoCo the model has no actuators (pal_mjlab's XML has none): arms are passive; apply torques via `d.qfrc_applied`. Body names are `robot/...`, `cup`, `bottle`, `bowl`, `chair`, `table`.
+- In mjlab, arms use pal_mjlab's position actuators; legs and trunk are held at the seated pose by equality locks (pal_mjlab's gains alone sag 0.0745 rad). Body names are entity-prefixed (`cup/cup`). Use the standard `mdp.reset_scene_to_default` reset event so the robot starts seated; a bare `sim.reset()` returns to qpos0.
+- The seated pose lies within Kangaroo's real joint limits (checked by the tests).
+- The original LIBERO runs separately: `docker run ... robot-learning /opt/venvs/libero/bin/python your_script.py`.
 
-![Kangaroo seated at the LIBERO table](out/kangaroo_seated.png)
+## Sources
 
-Kangaroo's names are prefixed `kangaroo/`; LIBERO objects keep their names (e.g. `plate_1_joint0`).
-Cameras from LIBERO remain: `frontview`, `agentview`, `sideview`, `birdview`, `galleryview`.
-
-## What this is, and what it is not (yet)
-
-- **Is:** a reproducible environment where Kangaroo, LIBERO scenes and MuJoCo run together, headless, on CPU or GPU.
-- **Is not:** a LIBERO task for Kangaroo. LIBERO's goal checking (BDDL predicates), rewards and
-  Gym-style `reset/step` are tied to robosuite's robot classes and are **not** wired to Kangaroo.
-  The next step for the team is either a thin Gymnasium wrapper around `make_scene` (reward from
-  object poses) or registering Kangaroo as a robosuite robot so LIBERO's own task logic applies.
-- **LIBERO demos are not included.** They were recorded on a Panda arm, so they cannot drive Kangaroo without retargeting.
-- **Base is welded** at PAL's home pelvis height (0.9 m), separating manipulation from balance.
-  For balance/locomotion, keep the free joint (see the comment in `make_scene`).
-- The image is ~13 GB, mostly the CUDA build of PyTorch that LIBERO depends on (and that RL training will want anyway).
+- Seated setup (base pose, joint angles, table, chair, object layout): `seated_setup_for_libero`, `seated_setup.json` version 2026-10-19.
+- Kangaroo: [pal_mjlab](https://github.com/pal-robotics/pal_mjlab). LIBERO: [Lifelong-Robot-Learning/LIBERO](https://github.com/Lifelong-Robot-Learning/LIBERO).
+- Objects: cup and bowl from Google Scanned Objects via [mujoco_scanned_objects](https://github.com/kevinzakka/mujoco_scanned_objects); bottle from robosuite v1.5.2. See [NOTICE](NOTICE).
