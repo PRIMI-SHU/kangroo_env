@@ -1,11 +1,15 @@
-"""Kangaroo seated on a chair at a table, with a cup, bottle and bowl (MjSpec; no actuators, arms are passive)."""
+"""Kangaroo seated on a chair at a table, hands resting on it, with a cup, bottle and bowl (MjSpec).
+
+Arms, legs and trunk use pal_mjlab's own position actuators (kangaroo_constants COMMON_ACTUATORS); ctrl = target joint angles.
+"""
 import json
 from pathlib import Path
 
 import mjlab  # noqa: F401  (first: its entry-point loader imports pal_mjlab.tasks, which is circular if pal_mjlab loads first)
 import mujoco
 import numpy as np
-from pal_mjlab.robots.pal_kangaroo.kangaroo_constants import KANGAROO_HANDS_XML
+from mjlab.entity import Entity, EntityCfg
+from pal_mjlab.robots.pal_kangaroo.kangaroo_constants import KANGAROO_HANDS_XML, get_kangaroo_hands_robot_cfg
 
 ROOM = "/workspace/LIBERO/libero/libero/assets/scenes/libero_tabletop_base_style.xml"
 ASSETS = Path("/workspace/assets")
@@ -16,7 +20,7 @@ OBJECTS = ("cup", "bottle", "bowl")
 OBJECT_X = -0.05          # final value, x offset of the objects from the table centre
 OBJECT_DY = 0.15          # spacing in y, centred on y = 0
 SETUP = json.load(open(Path(__file__).with_name("seated_setup.json")))
-POSE = SETUP["poses"]["seated_arms_at_side"]["joints"]
+POSE = SETUP["poses"]["seated_hands_on_table"]["joints"]  # same legs as seated_arms_at_side, hands resting on the table
 HELD_JOINTS = [n for n in POSE if n.startswith(("leg_", "pelvis_")) and not n.endswith(("_femur_joint", "_knee_joint"))]
 
 
@@ -48,6 +52,25 @@ def robot_spec():
     return robot
 
 
+def robot_cfg():
+    """pal_mjlab's kangaroo_hands entity (actuators, collisions), fixed base at the setup pose, joints at POSE."""
+    cfg = get_kangaroo_hands_robot_cfg()
+    cfg.spec_fn = robot_spec
+    cfg.init_state = EntityCfg.InitialStateCfg(  # new object: pal_mjlab shares INIT_STATE between variants
+        pos=tuple(SETUP["base_link"]["pos"]), rot=tuple(SETUP["base_link"]["quat_wxyz"]), joint_pos=dict(POSE))
+    return cfg
+
+
+def actuated_robot_spec():
+    """robot_spec with pal_mjlab's actuators and collision settings applied by mjlab, for plain MuJoCo."""
+    robot = Entity(robot_cfg()).spec
+    for k in list(robot.keys):
+        robot.delete(k)
+    root = robot.body("mocap_base")  # mjlab's fixed-base wrapper, placed at init_state; the attach frame does that here
+    root.pos, root.quat = [0, 0, 0], [1, 0, 0, 0]
+    return robot
+
+
 def object_spec(name):
     """Free-floating body `name` at the origin wrapping the object's XML body."""
     spec = mujoco.MjSpec()
@@ -71,7 +94,7 @@ def build_spec(object_z=None):
     spec = room_spec()
     for k in ("chair", "table"):
         spec.attach(furniture_spec(k), prefix="", frame=spec.worldbody.add_frame())
-    spec.attach(robot_spec(), prefix="robot/",
+    spec.attach(actuated_robot_spec(), prefix="robot/",
                 frame=spec.worldbody.add_frame(pos=SETUP["base_link"]["pos"], quat=SETUP["base_link"]["quat_wxyz"]))
     for o in OBJECTS:
         spec.attach(object_spec(o), prefix="", frame=spec.worldbody.add_frame(pos=object_pos(o, object_z)))
@@ -99,5 +122,7 @@ def make_model():
     d = mujoco.MjData(m)
     for n, q in POSE.items():
         d.joint(f"robot/{n}").qpos[0] = q
+    for i in range(m.nu):  # hold every actuated joint at the pose
+        d.ctrl[i] = POSE[m.actuator(i).name.removeprefix("robot/")]
     mujoco.mj_forward(m, d)
     return m, d

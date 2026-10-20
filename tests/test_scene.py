@@ -34,10 +34,26 @@ def test_objects_stay_on_table():
         assert abs(d.body(o).xpos[2] - z0[o]) < 0.02, o
         assert np.linalg.norm(d.body(o).cvel) < 0.05, o
 
+def test_arms_held_with_hands_on_table():
+    m, d = make_model(); step_1s(m, d)
+    arms = [n for n in POSE if n.startswith("arm_")]
+    assert len(arms) == 10 and all(m.actuator(f"robot/{n}") for n in arms)  # PAL's arm actuators, not free
+    assert max(abs(d.joint(f"robot/{n}").qpos[0] - POSE[n]) for n in arms) < 0.1
+    for s in ("left", "right"):  # each forearm rests on the table
+        assert any({m.body(m.geom_bodyid[c.geom1]).name, m.body(m.geom_bodyid[c.geom2]).name} == {f"robot/arm_{s}_4_link", "table"}
+                   for c in d.contact[:d.ncon]), s
+
+def test_arms_rest_on_table_not_in_it():
+    m, d = make_model(); step_1s(m, d)
+    arm_table = [c.dist for c in d.contact[:d.ncon]
+                 if {m.body(m.geom_bodyid[c.geom1]).name, m.body(m.geom_bodyid[c.geom2]).name} & {"table"}
+                 and "arm_" in m.body(m.geom_bodyid[c.geom1]).name + m.body(m.geom_bodyid[c.geom2]).name]
+    assert arm_table and min(arm_table) > -0.005, arm_table
+
 def test_arm_moves_and_renders():
     m, d = make_model()
     j = m.joint("robot/arm_left_1_joint"); q0 = d.qpos[j.qposadr[0]]
-    d.qfrc_applied[m.jnt_dofadr[j.id]] = 20.0  # no actuators in kangaroo_hands.xml; apply torque directly
+    d.ctrl[m.actuator("robot/arm_left_1_joint").id] = q0 + 0.3  # position target
     mujoco.mj_step(m, d, nstep=500)
     assert abs(d.qpos[j.qposadr[0]] - q0) > 0.05
     cam = mujoco.MjvCamera(); cam.lookat[:] = [-0.1, 0, 0.75]  # in-room camera (setup's 3.2 m camera sits behind LIBERO's wall)

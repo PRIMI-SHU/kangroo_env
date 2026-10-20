@@ -2,19 +2,9 @@
 import mjlab  # noqa: F401  (before pal_mjlab, see scene.py)
 from mjlab.entity import EntityCfg
 from mjlab.scene import SceneCfg
-from pal_mjlab.robots.pal_kangaroo.kangaroo_constants import get_kangaroo_hands_robot_cfg
 
-from .scene import OBJECTS, POSE, SETUP, _rest_heights, furniture_spec, lock_held_joints, object_pos, \
-    object_spec, robot_spec, room_spec
-
-
-def robot_cfg():
-    """pal_mjlab's kangaroo_hands entity (actuators, collisions), fixed base at the setup pose, joints at POSE."""
-    cfg = get_kangaroo_hands_robot_cfg()
-    cfg.spec_fn = robot_spec
-    cfg.init_state = EntityCfg.InitialStateCfg(  # new object: pal_mjlab shares INIT_STATE between variants
-        pos=tuple(SETUP["base_link"]["pos"]), rot=tuple(SETUP["base_link"]["quat_wxyz"]), joint_pos=dict(POSE))
-    return cfg
+from .scene import OBJECTS, _rest_heights, furniture_spec, lock_held_joints, object_pos, object_spec, robot_cfg, \
+    room_spec
 
 
 def make_scene_cfg(num_envs: int = 1) -> SceneCfg:

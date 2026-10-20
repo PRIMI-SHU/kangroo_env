@@ -1,6 +1,6 @@
 """View the seated Kangaroo scene: live window by default, or --video out.mp4 headless.
 
-In the plain-MuJoCo model the arms are passive (no actuators) and sag under gravity: expected.
+Arms are held by pal_mjlab's position actuators with the forearms resting on the table.
 """
 import argparse, time, imageio, mujoco
 from kangaroo_seated import make_model

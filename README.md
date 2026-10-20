@@ -42,7 +42,8 @@ docker run --rm -it --gpus all -e DISPLAY=$DISPLAY -e MUJOCO_GL=glfw -e PYOPENGL
   -v /tmp/.X11-unix:/tmp/.X11-unix -v "$PWD:/workspace" robot-learning python view.py
 ```
 
-`view.py` uses the plain-MuJoCo model, which has no actuators, so the arms sag under gravity: expected.
+The robot starts in the confirmed `seated_hands_on_table` pose, forearms resting on the table, with
+every joint held by pal_mjlab's own position actuators (the same ones mjlab uses).
 
 ## 3. Build your own work on it
 
@@ -55,11 +56,11 @@ docker run --rm -it --gpus all -e DISPLAY=$DISPLAY -e MUJOCO_GL=glfw -e PYOPENGL
    from kangaroo_seated import make_model
 
    m, d = make_model()                                   # seated Kangaroo, chair, table, cup, bottle, bowl
-   elbow = m.joint("robot/arm_right_4_joint").dofadr[0]
+   shoulder = m.actuator("robot/arm_right_1_joint").id   # position actuator: ctrl = target angle (rad)
    for _ in range(1000):
-       d.qfrc_applied[elbow] = -5.0                      # your controller goes here (torque, N·m)
+       d.ctrl[shoulder] = -0.6                           # your controller goes here
        mujoco.mj_step(m, d)
-   print("cup at", d.body("cup").xpos)
+   print("right palm at", d.body("robot/hand_right_palm_link").xpos, "cup at", d.body("cup").xpos)
    ```
 
 3. **Move to mjlab for RL / many parallel envs on the GPU.** `make_scene_cfg(num_envs=N)` returns the
@@ -77,8 +78,10 @@ docker run --rm -it --gpus all -e DISPLAY=$DISPLAY -e MUJOCO_GL=glfw -e PYOPENGL
 
 Good to know:
 
-- Plain MuJoCo: arms are passive, so drive them with `d.qfrc_applied`. Body names are `robot/...`, `cup`, `bottle`, `bowl`, `chair`, `table`.
-- mjlab: arms use pal_mjlab's position actuators; legs and trunk are held seated by equality locks. Body
+- Plain MuJoCo and mjlab use the same robot: pal_mjlab's position actuators on arms, legs and trunk
+  (`d.ctrl` = target angles, initialised to the pose), and equality locks keeping legs and trunk seated.
+- Plain MuJoCo body names are `robot/...`, `cup`, `bottle`, `bowl`, `chair`, `table`.
+- mjlab: Body
   names are entity-prefixed (`cup/cup`). Use the `mdp.reset_scene_to_default` reset event so the robot
   starts seated; a bare `sim.reset()` returns to qpos0.
 - The hands are rigid (pal_mjlab comments out every finger joint): objects can be pushed or scooped, not grasped.
