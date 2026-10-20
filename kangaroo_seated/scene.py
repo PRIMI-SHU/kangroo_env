@@ -20,37 +20,62 @@ POSE = SETUP["poses"]["seated_arms_at_side"]["joints"]
 HELD_JOINTS = [n for n in POSE if n.startswith(("leg_", "pelvis_")) and not n.endswith(("_femur_joint", "_knee_joint"))]
 
 
-def build_spec(object_z=None):
+def room_spec():
     spec = mujoco.MjSpec.from_file(ROOM)
     spec.delete(spec.body("table"))  # LIBERO's table; ours comes from the setup
-    for k in ("chair", "table"):  # static bodies, so contacts can be identified by body name
-        body = spec.worldbody.add_body(name=k)
-        for b in SETUP[k]["boxes"]:
-            body.add_geom(name=b["name"], type=mujoco.mjtGeom.mjGEOM_BOX, size=b["size_half"],
-                          pos=b["pos"], rgba=b["rgba"], contype=1, conaffinity=1, group=0)
+    return spec
 
+
+def furniture_spec(name):
+    """Static 'chair' or 'table' body from the setup boxes (world coordinates), so contacts can be identified by body name."""
+    spec = mujoco.MjSpec()
+    body = spec.worldbody.add_body(name=name)
+    for b in SETUP[name]["boxes"]:
+        body.add_geom(name=b["name"], type=mujoco.mjtGeom.mjGEOM_BOX, size=b["size_half"],
+                      pos=b["pos"], rgba=b["rgba"], contype=1, conaffinity=1, group=0)
+    return spec
+
+
+def robot_spec():
+    """kangaroo_hands without keyframes or free joint, base_link at the origin (the parent frame carries the setup pose)."""
     robot = mujoco.MjSpec.from_file(str(KANGAROO_HANDS_XML))
     for k in list(robot.keys):
         robot.delete(k)
     base = robot.body("base_link")
     for j in base.joints:
-        robot.delete(j)  # free joint 'origin': base is anchored at the setup pose
-    base.pos, base.quat = [0, 0, 0], [1, 0, 0, 0]  # the frame carries the setup pose
-    spec.worldbody.add_frame(pos=SETUP["base_link"]["pos"], quat=SETUP["base_link"]["quat_wxyz"]) \
-        .attach_body(base, "robot/", "")
+        robot.delete(j)  # free joint 'origin'
+    base.pos, base.quat = [0, 0, 0], [1, 0, 0, 0]
+    return robot
 
-    top = SETUP["table"]["top_z"]
-    for i, o in enumerate(OBJECTS):
-        child = mujoco.MjSpec.from_file(str(OBJECT_XML[o]))
-        y = (i - 1) * OBJECT_DY
-        z = top + (object_z or {}).get(o, 0.0)
-        body = spec.worldbody.add_body(name=o, pos=[OBJECT_X, y, z])
-        body.add_freejoint()
-        body.add_frame().attach_body(child.body(OBJECT_BODY[o]), o + "_", "")
 
+def object_spec(name):
+    """Free-floating body `name` at the origin wrapping the object's XML body."""
+    spec = mujoco.MjSpec()
+    body = spec.worldbody.add_body(name=name)
+    body.add_freejoint()
+    body.add_frame().attach_body(mujoco.MjSpec.from_file(str(OBJECT_XML[name])).body(OBJECT_BODY[name]), name + "_", "")
+    return spec
+
+
+def object_pos(name, object_z=None):
+    return [OBJECT_X, (OBJECTS.index(name) - 1) * OBJECT_DY, SETUP["table"]["top_z"] + (object_z or {}).get(name, 0.0)]
+
+
+def lock_held_joints(spec, prefix="robot/"):
     for n in HELD_JOINTS:
-        spec.add_equality(type=mujoco.mjtEq.mjEQ_JOINT, name1=f"robot/{n}", data=[POSE[n]] + [0] * 10,
+        spec.add_equality(type=mujoco.mjtEq.mjEQ_JOINT, name1=prefix + n, data=[POSE[n]] + [0] * 10,
                           solref=[2 * spec.option.timestep, 1])
+
+
+def build_spec(object_z=None):
+    spec = room_spec()
+    for k in ("chair", "table"):
+        spec.attach(furniture_spec(k), prefix="", frame=spec.worldbody.add_frame())
+    spec.attach(robot_spec(), prefix="robot/",
+                frame=spec.worldbody.add_frame(pos=SETUP["base_link"]["pos"], quat=SETUP["base_link"]["quat_wxyz"]))
+    for o in OBJECTS:
+        spec.attach(object_spec(o), prefix="", frame=spec.worldbody.add_frame(pos=object_pos(o, object_z)))
+    lock_held_joints(spec)
     return spec
 
 
