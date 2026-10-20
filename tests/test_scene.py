@@ -1,4 +1,4 @@
-import os, subprocess, sys, imageio, numpy as np, mujoco
+import copy, os, subprocess, sys, imageio, numpy as np, mujoco
 from kangaroo_seated import POSE, HELD_JOINTS, OBJECTS, make_model
 
 def test_import_is_silent():
@@ -46,3 +46,27 @@ def test_arm_moves_and_renders():
         r.update_scene(d, camera=cam); img = r.render()
     assert img.max() > 0
     os.makedirs("out", exist_ok=True); imageio.imwrite("out/kangaroo_seated.png", img)
+
+def min_palm_distance(m, d, side, target):
+    """Damped-least-squares IK on the 5 arm joints (kinematics only, on a copy of d); returns palm-target distance."""
+    d = copy.copy(d)
+    js = [m.joint(f"robot/arm_{side}_{i}_joint") for i in range(1, 6)]
+    palm = m.body(f"robot/hand_{side}_palm_link").id
+    jp = np.zeros((3, m.nv))
+    for _ in range(200):
+        mujoco.mj_kinematics(m, d); mujoco.mj_comPos(m, d)
+        err = target - d.xpos[palm]
+        mujoco.mj_jacBody(m, d, jp, None, palm)
+        J = jp[:, [j.dofadr[0] for j in js]]
+        dq = J.T @ np.linalg.solve(J @ J.T + 1e-4 * np.eye(3), err)
+        for j, x in zip(js, dq):
+            d.qpos[j.qposadr[0]] = np.clip(d.qpos[j.qposadr[0]] + x, *j.range)
+    mujoco.mj_kinematics(m, d)
+    return float(np.linalg.norm(target - d.xpos[palm]))
+
+def test_each_object_reachable():
+    m, d = make_model()
+    for o in OBJECTS:
+        best = min(min_palm_distance(m, d, s, d.body(o).xpos.copy()) for s in ("left", "right"))
+        print(o, d.body(o).xpos, best)
+        assert best < 0.10, (o, best)
