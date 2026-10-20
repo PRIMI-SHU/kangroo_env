@@ -13,7 +13,7 @@ OBJECT_XML = {"cup": ASSETS / "cup/model.xml", "bowl": ASSETS / "bowl/model.xml"
               "bottle": ASSETS / "bottle/objects/bottle.xml"}
 OBJECT_BODY = {"cup": "model", "bowl": "model", "bottle": "object"}  # body of each XML that gets attached
 OBJECTS = ("cup", "bottle", "bowl")
-OBJECT_X = -0.05          # Task 3 tunes
+OBJECT_X = -0.05          # final value, x offset of the objects from the table centre
 OBJECT_DY = 0.15          # spacing in y, centred on y = 0
 SETUP = json.load(open(Path(__file__).with_name("seated_setup.json")))
 POSE = SETUP["poses"]["seated_arms_at_side"]["joints"]

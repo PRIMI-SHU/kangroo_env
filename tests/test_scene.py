@@ -68,5 +68,4 @@ def test_each_object_reachable():
     m, d = make_model()
     for o in OBJECTS:
         best = min(min_palm_distance(m, d, s, d.body(o).xpos.copy()) for s in ("left", "right"))
-        print(o, d.body(o).xpos, best)
         assert best < 0.10, (o, best)

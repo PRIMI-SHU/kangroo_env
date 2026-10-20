@@ -2,3 +2,6 @@ out/
 **/.venv
 **/__pycache__
 docs/
+assets/
+.superpowers/
+.pytest_cache/

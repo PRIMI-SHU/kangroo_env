@@ -5,9 +5,9 @@ environments and one task-free scene: Kangaroo seated on a chair at a table with
 bottle and a bowl, for seated upper-limb rehab work. There is no task or suite to pick; it is just a working simulation.
 Terms are defined in [CONTEXT.md](CONTEXT.md).
 
-![Seated Kangaroo at the table](out/kangaroo_seated.png)
+![Seated Kangaroo at the table](docs/kangaroo_seated.png)
 
-(`out/` is git-ignored; the image is written by `pytest -v tests`.)
+(Snapshot; `pytest -v tests` regenerates it in the git-ignored `out/`.)
 
 ## Layout
 
@@ -27,12 +27,17 @@ pal_mjlab/ LIBERO/ assets/   fetched by setup.sh (git-ignored)
 
 ## Build and run
 
+Host prerequisites for `setup.sh`: git, curl, python3, Docker (plus the NVIDIA Container Toolkit for `--gpus`).
+
 ```bash
 ./setup.sh                                  # clone pal_mjlab @52f5d6ed5d, LIBERO @8f1084e313, download assets
 docker build -t robot-learning .            # add --build-arg TORCH_EXTRA=cpu for a CPU-only torch
 docker run --rm -it --gpus all -v "$PWD:/workspace" robot-learning     # bash in /workspace
 pytest -v tests                             # inside the container
 ```
+
+No NVIDIA GPU: drop `--gpus all` (the Warp test then skips); if EGL is unavailable add `-e MUJOCO_GL=osmesa -e PYOPENGL_PLATFORM=osmesa`.
+Files the container writes into the mount (`out/`, `__pycache__`) are root-owned on the host.
 
 Or run the tests directly: `docker run --rm --gpus all -v "$PWD:/workspace" robot-learning pytest -v tests`.
 
@@ -66,6 +71,7 @@ cfg = make_scene_cfg()         # mjlab SceneCfg (num_envs=1 by default) for mjla
 
 - In plain MuJoCo the model has no actuators (pal_mjlab's XML has none): arms are passive; apply torques via `d.qfrc_applied`. Body names are `robot/...`, `cup`, `bottle`, `bowl`, `chair`, `table`.
 - In mjlab, arms use pal_mjlab's position actuators; legs and trunk are held at the seated pose by equality locks (pal_mjlab's gains alone sag 0.0745 rad). Body names are entity-prefixed (`cup/cup`). Use the standard `mdp.reset_scene_to_default` reset event so the robot starts seated; a bare `sim.reset()` returns to qpos0.
+- The hands are rigid: pal_mjlab comments out every finger/palm joint in `kangaroo_hands.xml`, so objects can be pushed or scooped but not grasped with fingers.
 - The seated pose lies within Kangaroo's real joint limits (checked by the tests).
 - The original LIBERO runs separately: `docker run ... robot-learning /opt/venvs/libero/bin/python your_script.py`.
 

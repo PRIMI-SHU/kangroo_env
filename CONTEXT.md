@@ -39,7 +39,7 @@ _Avoid_: world, map, level
 ### This project
 
 **Seated scene**:
-Kangaroo seated on a chair at a table with a cup, water bottle and bowl, in plain MuJoCo (`make_model`) or mjlab (`make_scene_cfg`). It has no task, reward or goal.
+Kangaroo seated on a chair at a table with a cup, water bottle and bowl, in plain MuJoCo (`make_model`) or mjlab (`make_scene_cfg`). It has no task, reward or goal. Kangaroo's hands are rigid (pal_mjlab comments out all finger/palm joints): objects can be pushed or scooped, not finger-grasped.
 _Avoid_: combined scene, LIBERO task for Kangaroo
 
 **Tests**:
