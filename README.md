@@ -1,7 +1,7 @@
 # robot-learning: seated Kangaroo + LIBERO environments
 
-A Docker image for robot-learning work with PAL Robotics' **Kangaroo** humanoid. It has two Python
-environments and one task-free scene: Kangaroo seated on a chair at a table with a cup, a water
+A Docker image (ROS 2 Humble, Ubuntu 22.04, Python 3.10) for robot-learning work with PAL Robotics'
+**Kangaroo** humanoid. It has two Python venvs and one task-free scene: Kangaroo seated on a chair at a table with a cup, a water
 bottle and a bowl, for seated upper-limb rehab work. There is no task or suite to pick; it is just a working simulation.
 Terms are defined in [CONTEXT.md](CONTEXT.md).
 
@@ -13,17 +13,21 @@ Terms are defined in [CONTEXT.md](CONTEXT.md).
 
 ```
 setup.sh              clones pinned pal_mjlab and LIBERO, downloads object assets
-Dockerfile            two envs: /opt/venvs/mjlab (default) and /opt/venvs/libero
+Dockerfile            ros:humble-ros-base + two venvs: /opt/venvs/mjlab (default) and /opt/venvs/libero
 kangaroo_seated/      the scene: scene.py (MjSpec), mjlab_cfg.py (mjlab SceneCfg), seated_setup.json
 view.py               live viewer or headless video
 tests/                pytest suite
 pal_mjlab/ LIBERO/ assets/   fetched by setup.sh (git-ignored)
 ```
 
-| Env | Python | Contents |
+| Venv | Python | Contents |
 |---|---|---|
-| `/opt/venvs/mjlab` (default `python`) | 3.13 | pal_mjlab, mjlab 1.6.0, MuJoCo + MuJoCo Warp (PAL's lockfile) |
-| `/opt/venvs/libero` | 3.8 | original LIBERO with its own pinned requirements |
+| `/opt/venvs/mjlab` (default `python`) | 3.10 | pal_mjlab, mjlab 1.6.0, MuJoCo + MuJoCo Warp 3.11 (PAL's lockfile); `rclpy` importable |
+| `/opt/venvs/libero` | 3.10 | original LIBERO with its own pinned requirements, MuJoCo 3.2.3 |
+
+ROS 2 Humble is sourced in every container shell (`ros2`, `rclpy`); it is not wired to the
+simulator yet. The venvs stay separate because LIBERO pins numpy 1.22 and mjlab needs numpy 2:
+LIBERO feeds the scene as MuJoCo files instead ([ADR 0001](docs/adr/0001-one-simulator-libero-as-scene-content.md)).
 
 ## Build and run
 
@@ -46,7 +50,7 @@ The first MuJoCo Warp run compiles kernels (about 4.5 minutes). Warp caches them
 
 ## Viewing
 
-Live window (Linux desktop; mouse to orbit/zoom, Space pause, Backspace reset):
+Live window (Linux desktop; mouse to orbit/zoom):
 
 ```bash
 xhost +local:docker

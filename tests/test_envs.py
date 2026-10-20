@@ -11,6 +11,12 @@ def test_assets_present():
         f = pathlib.Path("/workspace/assets", p)
         assert f.is_file() and f.stat().st_size > 0, f"missing/empty assets/{p}: run ./setup.sh on the host"
 
+def test_ros_humble_python():
+    import os, sys
+    assert sys.version_info[:2] == (3, 10)
+    assert os.environ.get("ROS_DISTRO") == "humble", "ROS not sourced"
+    import rclpy  # noqa: F401  ROS 2 is importable from the mjlab venv
+
 def test_mjlab_stack_versions():
     import mujoco, importlib.metadata as md
     assert mujoco.__version__.startswith("3.11.")
@@ -22,7 +28,7 @@ def test_mjlab_stack_versions():
 def test_editable_paths_point_at_workspace():
     import pal_mjlab
     assert pal_mjlab.__file__.startswith("/workspace/pal_mjlab/")
-    out = subprocess.run(["/opt/venvs/libero/bin/python", "-c", "import libero.libero as l; print(l.__file__)"],
+    out = subprocess.run(["/opt/venvs/libero/bin/python", "-c", "import sys, libero.libero as l; assert sys.version_info[:2] == (3, 10); print(l.__file__)"],
                          capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=120)
     assert out.stdout.startswith("/workspace/LIBERO/"), out.stderr
 

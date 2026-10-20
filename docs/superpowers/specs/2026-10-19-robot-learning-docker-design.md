@@ -2,6 +2,13 @@
 
 Date: 2026-10-19, revised 2026-10-20. Status: **approved** (revision approved 2026-10-20).
 
+> **Revision 2026-10-20 (user-approved, supersedes the Docker base and Python versions below):**
+> base image `ros:humble-ros-base-jammy` (ROS 2 Humble, Ubuntu 22.04); both venvs use its system
+> **Python 3.10** (mjlab venv from PAL's lockfile, which supports 3.10; LIBERO venv moves from 3.8
+> to 3.10 with `mujoco==3.2.3` pinned). ROS is sourced in every shell, not wired to the simulator.
+> LIBERO stays a separate venv and contributes scene content as MuJoCo files: see
+> `docs/adr/0001-one-simulator-libero-as-scene-content.md`. Terms: `CONTEXT.md`.
+
 ## Intent and why
 
 The project gives the team a ready simulation environment for **seated upper-limb rehabilitation**

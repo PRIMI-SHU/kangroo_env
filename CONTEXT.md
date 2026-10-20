@@ -4,6 +4,16 @@ A ready-to-run Docker environment with a seated Kangaroo scene (MuJoCo / mjlab) 
 
 ## Language
 
+### Setup
+
+**Image**:
+The single Docker container the team develops in, built on ROS 2 Humble.
+_Avoid_: environment, container setup
+
+**Venv**:
+One of the two isolated Python installations inside the image: `mjlab` (Kangaroo simulation) or `libero` (original LIBERO).
+_Avoid_: environment, env
+
 ### Robot
 
 **Kangaroo**:
@@ -40,8 +50,16 @@ _Avoid_: world, map, level
 
 **Seated scene**:
 Kangaroo seated on a chair at a table with a cup, water bottle and bowl, in plain MuJoCo (`make_model`) or mjlab (`make_scene_cfg`). It has no task, reward or goal. Kangaroo's hands are rigid (pal_mjlab comments out all finger/palm joints): objects can be pushed or scooped, not finger-grasped.
-_Avoid_: combined scene, LIBERO task for Kangaroo
+_Avoid_: combined scene, LIBERO task for Kangaroo, environment
+
+**Scene content**:
+Geometry (room, objects, furniture, layouts) that LIBERO contributes to the seated scene as MuJoCo files, without LIBERO's Python code running.
+_Avoid_: LIBERO environment
+
+**Task**:
+Goals, rewards and success checks the team adds on top of the seated scene; none exist yet. Not a LIBERO task.
+_Avoid_: scene, environment
 
 **Tests**:
-The pytest suite (`pytest -v tests`) that proves the environment works: both envs, the seated scene, the mjlab scene and the viewer's video path.
+The pytest suite (`pytest -v tests`) that proves the image works: ROS, both venvs, the seated scene, the mjlab scene and the viewer's video path.
 _Avoid_: smoke test
