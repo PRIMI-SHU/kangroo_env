@@ -5,8 +5,11 @@ def test_clones_present():
         assert pathlib.Path("/workspace", d).is_dir(), f"missing {d}/: run ./setup.sh on the host"
 
 def test_assets_present():
-    for p in ("cup/model.xml", "bowl/model.xml", "bottle/objects/bottle.xml"):
-        assert pathlib.Path("/workspace/assets", p).is_file(), f"missing assets/{p}: run ./setup.sh on the host"
+    for p in ("cup/model.xml", "cup/model.obj", "cup/texture.png",
+              "bowl/model.xml", "bowl/model.obj", "bowl/texture.png",
+              "bottle/objects/bottle.xml", "bottle/objects/meshes/bottle.stl", "bottle/textures/glass.png"):
+        f = pathlib.Path("/workspace/assets", p)
+        assert f.is_file() and f.stat().st_size > 0, f"missing/empty assets/{p}: run ./setup.sh on the host"
 
 def test_mjlab_stack_versions():
     import mujoco, importlib.metadata as md
