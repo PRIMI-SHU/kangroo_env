@@ -1,5 +1,9 @@
-import os, imageio, numpy as np, mujoco
+import os, subprocess, sys, imageio, numpy as np, mujoco
 from kangaroo_seated import POSE, HELD_JOINTS, OBJECTS, make_model
+
+def test_import_is_silent():
+    r = subprocess.run([sys.executable, "-c", "import kangaroo_seated"], capture_output=True, text=True)
+    assert r.returncode == 0 and "WARN" not in r.stdout + r.stderr and "Traceback" not in r.stdout + r.stderr, r.stderr[-300:]
 
 def step_1s(m, d): mujoco.mj_step(m, d, nstep=int(1.0 / m.opt.timestep))
 
@@ -36,8 +40,8 @@ def test_arm_moves_and_renders():
     d.qfrc_applied[m.jnt_dofadr[j.id]] = 20.0  # no actuators in kangaroo_hands.xml; apply torque directly
     mujoco.mj_step(m, d, nstep=500)
     assert abs(d.qpos[j.qposadr[0]] - q0) > 0.05
-    cam = mujoco.MjvCamera(); cam.lookat[:] = [-0.1, 0, 0.75]  # setup's preview camera
-    cam.distance, cam.azimuth, cam.elevation = 3.2, 90, -10
+    cam = mujoco.MjvCamera(); cam.lookat[:] = [-0.1, 0, 0.75]  # in-room camera (setup's 3.2 m camera sits behind LIBERO's wall)
+    cam.distance, cam.azimuth, cam.elevation = 2.2, 90, -10
     with mujoco.Renderer(m, 480, 640) as r:
         r.update_scene(d, camera=cam); img = r.render()
     assert img.max() > 0

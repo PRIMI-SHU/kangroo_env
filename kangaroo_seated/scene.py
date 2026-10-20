@@ -2,6 +2,7 @@
 import json
 from pathlib import Path
 
+import mjlab  # noqa: F401  (first: its entry-point loader imports pal_mjlab.tasks, which is circular if pal_mjlab loads first)
 import mujoco
 import numpy as np
 from pal_mjlab.robots.pal_kangaroo.kangaroo_constants import KANGAROO_HANDS_XML
@@ -22,8 +23,6 @@ HELD_JOINTS = [n for n in POSE if n.startswith(("leg_", "pelvis_")) and not n.en
 def build_spec(object_z=None):
     spec = mujoco.MjSpec.from_file(ROOM)
     spec.delete(spec.body("table"))  # LIBERO's table; ours comes from the setup
-    for g in ("wall_right_visual", "wall_rightcorner_visual"):  # visual only; the setup's side camera sits behind them
-        spec.delete(spec.geom(g))
     for k in ("chair", "table"):  # static bodies, so contacts can be identified by body name
         body = spec.worldbody.add_body(name=k)
         for b in SETUP[k]["boxes"]:
