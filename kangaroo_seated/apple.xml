@@ -1,0 +1,16 @@
+<!-- YCB 013_apple (Google 16k textured scan, CC BY 4.0), fetched into assets/apple by setup.sh. One mesh: visual and
+     collision (convex hull, capped at 64 vertices: the full 8k-vertex hull's tiny facets make the contact chatter).
+     Mass is YCB's measured 68 g; condim 6 adds rolling friction so the apple stays put. -->
+<mujoco model="apple">
+  <compiler meshdir="/workspace/assets/apple" texturedir="/workspace/assets/apple"/>
+  <asset>
+    <texture name="apple" type="2d" file="texture_map.png"/>
+    <material name="apple" texture="apple"/>
+    <mesh name="apple" file="textured.obj" maxhullvert="64"/>
+  </asset>
+  <worldbody>
+    <body name="apple">
+      <geom name="apple" type="mesh" mesh="apple" material="apple" mass="0.068" condim="6" friction="1 0.005 0.001"/>
+    </body>
+  </worldbody>
+</mujoco>

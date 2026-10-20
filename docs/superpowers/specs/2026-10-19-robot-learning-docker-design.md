@@ -8,6 +8,11 @@ Date: 2026-10-19, revised 2026-10-20. Status: **approved** (revision approved 20
 > to 3.10 with `mujoco==3.2.3` pinned). ROS is sourced in every shell, not wired to the simulator.
 > LIBERO stays a separate venv and contributes scene content as MuJoCo files: see
 > `docs/adr/0001-one-simulator-libero-as-scene-content.md`. Terms: `CONTEXT.md`.
+>
+> **Revision 2026-10-20 (user-requested):** the bowl is replaced by an apple (YCB `013_apple`, CC BY 4.0;
+> no apple exists in Google Scanned Objects or robosuite); objects move to 40 cm from the table's front edge
+> (`OBJECT_X = 0.10`, ~80% of measured reach). Start pose is `seated_hands_on_table` with small elbow/shoulder
+> changes so both hands rest on the table; arms use pal_mjlab's actuators; forearm/hand meshes collide.
 
 ## Intent and why
 

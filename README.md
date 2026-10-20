@@ -2,7 +2,7 @@
 
 A Docker image (ROS 2 Humble, Ubuntu 22.04, Python 3.10) for robot-learning work with PAL Robotics'
 **Kangaroo** humanoid. It ships one task-free scene: Kangaroo seated on a chair at a table with a cup,
-a water bottle and a bowl, for seated upper-limb rehab work. No task is defined; you add your own.
+a water bottle and an apple, for seated upper-limb rehab work. No task is defined; you add your own.
 Terms are defined in [CONTEXT.md](CONTEXT.md).
 
 ![Seated Kangaroo at the table](docs/kangaroo_seated.png)
@@ -56,7 +56,7 @@ uses). The forearm and hand meshes are the collision shapes, so hands touch the 
    import mujoco
    from kangaroo_seated import make_model
 
-   m, d = make_model()                                   # seated Kangaroo, chair, table, cup, bottle, bowl
+   m, d = make_model()                                   # seated Kangaroo, chair, table, cup, bottle, apple
    shoulder = m.actuator("robot/arm_right_1_joint").id   # position actuator: ctrl = target angle (rad)
    for _ in range(1000):
        d.ctrl[shoulder] = -0.6                           # your controller goes here
@@ -81,7 +81,9 @@ Good to know:
 
 - Plain MuJoCo and mjlab use the same robot: pal_mjlab's position actuators on arms, legs and trunk
   (`d.ctrl` = target angles, initialised to the pose), and equality locks keeping legs and trunk seated.
-- Plain MuJoCo body names are `robot/...`, `cup`, `bottle`, `bowl`, `chair`, `table`.
+- Plain MuJoCo body names are `robot/...`, `cup`, `bottle`, `apple`, `chair`, `table`.
+- The objects stand 15 cm apart, 40 cm from the table's front edge: about 80% of the arm's reach, so a reach
+  is a real stretch but every object stays reachable (checked by the tests).
 - mjlab: Body
   names are entity-prefixed (`cup/cup`). Use the `mdp.reset_scene_to_default` reset event so the robot
   starts seated; a bare `sim.reset()` returns to qpos0.
@@ -110,4 +112,4 @@ The venvs stay separate because LIBERO pins numpy 1.22 and mjlab needs numpy 2.
 
 - Seated setup (base pose, joint angles, table, chair, object layout): `seated_setup_for_libero`, `seated_setup.json` version 2026-10-19.
 - Kangaroo: [pal_mjlab](https://github.com/pal-robotics/pal_mjlab). LIBERO: [Lifelong-Robot-Learning/LIBERO](https://github.com/Lifelong-Robot-Learning/LIBERO).
-- Objects: cup and bowl from Google Scanned Objects via [mujoco_scanned_objects](https://github.com/kevinzakka/mujoco_scanned_objects); bottle from robosuite v1.5.2. See [NOTICE](NOTICE).
+- Objects: cup from Google Scanned Objects via [mujoco_scanned_objects](https://github.com/kevinzakka/mujoco_scanned_objects); bottle from robosuite v1.5.2; apple from the [YCB set](https://www.ycbbenchmarks.com/) (`013_apple`, MJCF in `kangaroo_seated/apple.xml`). See [NOTICE](NOTICE).

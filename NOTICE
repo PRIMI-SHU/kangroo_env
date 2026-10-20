@@ -6,6 +6,7 @@ This repository builds on third-party software and data:
 - robosuite v1.5.2: the water bottle asset (bottle.xml, mesh, texture), MIT License.
   https://github.com/ARISE-Initiative/robosuite
 - Google Scanned Objects, via https://github.com/kevinzakka/mujoco_scanned_objects (repo MIT;
-  models CC-BY 4.0, (c) Google Research). Used models:
-  "Cole_Hardware_Mug_Classic_Blue" (cup) and "Threshold_Bead_Cereal_Bowl_White" (bowl).
+  models CC-BY 4.0, (c) Google Research). Used model: "Cole_Hardware_Mug_Classic_Blue" (cup).
+- YCB Object and Model Set: "013_apple" (google_16k scan), CC BY 4.0. https://www.ycbbenchmarks.com/
+  B. Calli et al., "The YCB Object and Model Set", IEEE Robotics & Automation Magazine, 2015.
 - Seated setup: seated_setup_for_libero (seated_setup.json, version 2026-10-19).

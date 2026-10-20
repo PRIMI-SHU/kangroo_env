@@ -1,4 +1,4 @@
-"""Kangaroo seated on a chair at a table, hands resting on it, with a cup, bottle and bowl (MjSpec).
+"""Kangaroo seated on a chair at a table, hands resting on it, with a cup, bottle and apple (MjSpec).
 
 Arms, legs and trunk use pal_mjlab's own position actuators (kangaroo_constants COMMON_ACTUATORS); ctrl = target joint angles.
 """
@@ -14,11 +14,11 @@ from pal_mjlab.robots.pal_kangaroo.kangaroo_constants import KANGAROO_HANDS_XML,
 
 ROOM = "/workspace/LIBERO/libero/libero/assets/scenes/libero_tabletop_base_style.xml"
 ASSETS = Path("/workspace/assets")
-OBJECT_XML = {"cup": ASSETS / "cup/model.xml", "bowl": ASSETS / "bowl/model.xml",
+OBJECT_XML = {"cup": ASSETS / "cup/model.xml", "apple": Path(__file__).with_name("apple.xml"),
               "bottle": ASSETS / "bottle/objects/bottle.xml"}
-OBJECT_BODY = {"cup": "model", "bowl": "model", "bottle": "object"}  # body of each XML that gets attached
-OBJECTS = ("cup", "bottle", "bowl")
-OBJECT_X = -0.05          # final value, x offset of the objects from the table centre
+OBJECT_BODY = {"cup": "model", "apple": "apple", "bottle": "object"}  # body of each XML that gets attached
+OBJECTS = ("cup", "bottle", "apple")
+OBJECT_X = 0.10           # 40 cm from the table's front edge: ~80% of the palm's reach (reach runs out at ~50 cm)
 OBJECT_DY = 0.15          # spacing in y, centred on y = 0
 SETUP = json.load(open(Path(__file__).with_name("seated_setup.json")))
 # Confirmed seated_hands_on_table pose (same legs as seated_arms_at_side). With collision on the visible meshes it puts the
