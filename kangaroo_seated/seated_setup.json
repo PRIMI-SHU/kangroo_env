@@ -1,0 +1,352 @@
+{
+ "version": "2026-10-19",
+ "frame": "World: floor at z = 0, robot faces +x, +y is the robot's left, z up. Metres and radians. Robot centred on y = 0.",
+ "base_link": {
+  "pos": [
+   -0.3544,
+   0.0,
+   0.7479
+  ],
+  "quat_wxyz": [
+   1.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "note": "Upright (no tilt). Anchor the base here (fixed base) for the seated tasks."
+ },
+ "poses": {
+  "seated_arms_at_side": {
+   "joints": {
+    "pelvis_1_joint": 0.0,
+    "pelvis_2_joint": 0.0,
+    "arm_left_1_joint": 0.24,
+    "arm_left_2_joint": 1.32,
+    "arm_left_3_joint": 1.57,
+    "arm_left_4_joint": 0.8,
+    "arm_left_5_joint": 0.0,
+    "arm_right_1_joint": -0.24,
+    "arm_right_2_joint": 1.32,
+    "arm_right_3_joint": -1.57,
+    "arm_right_4_joint": 0.8,
+    "arm_right_5_joint": 0.0,
+    "leg_left_1_joint": 0.0,
+    "leg_left_2_joint": -0.541052,
+    "leg_left_3_joint": 0.0,
+    "leg_left_length_joint": 0.528213,
+    "leg_left_4_joint": 0.541052,
+    "leg_left_5_joint": 0.0,
+    "leg_left_femur_joint": 0.768377,
+    "leg_left_knee_joint": 1.536884,
+    "leg_right_1_joint": 0.0,
+    "leg_right_2_joint": -0.541052,
+    "leg_right_3_joint": 0.0,
+    "leg_right_length_joint": 0.528213,
+    "leg_right_4_joint": 0.541052,
+    "leg_right_5_joint": 0.0,
+    "leg_right_femur_joint": 0.768377,
+    "leg_right_knee_joint": 1.536884
+   },
+   "note": "Our 0.40 m seated design (seated_pose_sagittal_H040). Includes the passive closed-chain joints leg_*_femur_joint and leg_*_knee_joint, already solved."
+  },
+  "seated_hands_on_table": {
+   "joints": {
+    "pelvis_1_joint": 0.0,
+    "pelvis_2_joint": -0.150148,
+    "arm_left_1_joint": -0.49466,
+    "arm_left_2_joint": 0.692862,
+    "arm_left_3_joint": 2.440285,
+    "arm_left_4_joint": 1.485591,
+    "arm_left_5_joint": -0.970087,
+    "arm_right_1_joint": -0.338471,
+    "arm_right_2_joint": 0.947947,
+    "arm_right_3_joint": -1.344516,
+    "arm_right_4_joint": 1.888774,
+    "arm_right_5_joint": 0.531967,
+    "leg_left_1_joint": 0.0,
+    "leg_left_2_joint": -0.541052,
+    "leg_left_3_joint": 0.0,
+    "leg_left_length_joint": 0.528213,
+    "leg_left_4_joint": 0.541052,
+    "leg_left_5_joint": 0.0,
+    "leg_left_femur_joint": 0.768377,
+    "leg_left_knee_joint": 1.536884,
+    "leg_right_1_joint": 0.0,
+    "leg_right_2_joint": -0.541052,
+    "leg_right_3_joint": 0.0,
+    "leg_right_length_joint": 0.528213,
+    "leg_right_4_joint": 0.541052,
+    "leg_right_5_joint": 0.0,
+    "leg_right_femur_joint": 0.768377,
+    "leg_right_knee_joint": 1.536884
+   },
+   "note": "Same legs; arms and trunk yaw from frame 0 of our retargeted clip s7_t1_o3_rep3 (hands resting on the table, table top 0.82 m)."
+  }
+ },
+ "joint_convention_notes": [
+  "Joint names and values are for pal_mjlab's kangaroo_hands.xml. In PAL's 5dof_RH8D model (used by Kangaroo_Libero) every leg, pelvis and arm_1..4 joint has the same axis and zero, checked body by body (0.0 mm difference).",
+  "EXCEPT arm_*_5_joint (forearm roll): its axis is reversed in the RH8D model, so NEGATE arm_left_5_joint and arm_right_5_joint values when applying a pose to the RH8D model. (0 in the arms-at-side pose.)",
+  "Hand (finger, thumb, palm roll/pitch) joints are not set here: leave them at the model's home (open hand) or command them separately."
+ ],
+ "chair": {
+  "seat_top_z": 0.4,
+  "seat_front_edge_x": -0.2359,
+  "seat_depth": 0.4041,
+  "seat_width": 0.45,
+  "seat_thickness": 0.04,
+  "backrest": {
+   "front_face_x": -0.64,
+   "from_z": 0.4,
+   "to_z": 0.85,
+   "thickness": 0.03,
+   "note": "Touches the rearmost part of the robot's base (incl. its back handle) 0.30-0.45 m above the seat. Our design needs a backrest or a base fixture on the real robot: the seated centre of mass is ~8 cm behind the seat contact. In simulation with an anchored base it is only needed for realism."
+  },
+  "boxes": [
+   {
+    "name": "chair_seat",
+    "type": "box",
+    "size_half": [
+     0.2021,
+     0.225,
+     0.02
+    ],
+    "pos": [
+     -0.438,
+     0,
+     0.38
+    ],
+    "rgba": [
+     0.55,
+     0.38,
+     0.22,
+     1
+    ]
+   },
+   {
+    "name": "chair_leg0",
+    "type": "box",
+    "size_half": [
+     0.0175,
+     0.0175,
+     0.18
+    ],
+    "pos": [
+     -0.2534,
+     0.2075,
+     0.18
+    ],
+    "rgba": [
+     0.35,
+     0.24,
+     0.14,
+     1
+    ]
+   },
+   {
+    "name": "chair_leg1",
+    "type": "box",
+    "size_half": [
+     0.0175,
+     0.0175,
+     0.18
+    ],
+    "pos": [
+     -0.2534,
+     -0.2075,
+     0.18
+    ],
+    "rgba": [
+     0.35,
+     0.24,
+     0.14,
+     1
+    ]
+   },
+   {
+    "name": "chair_leg2",
+    "type": "box",
+    "size_half": [
+     0.0175,
+     0.0175,
+     0.18
+    ],
+    "pos": [
+     -0.6225,
+     0.2075,
+     0.18
+    ],
+    "rgba": [
+     0.35,
+     0.24,
+     0.14,
+     1
+    ]
+   },
+   {
+    "name": "chair_leg3",
+    "type": "box",
+    "size_half": [
+     0.0175,
+     0.0175,
+     0.18
+    ],
+    "pos": [
+     -0.6225,
+     -0.2075,
+     0.18
+    ],
+    "rgba": [
+     0.35,
+     0.24,
+     0.14,
+     1
+    ]
+   },
+   {
+    "name": "chair_backrest",
+    "type": "box",
+    "size_half": [
+     0.015,
+     0.225,
+     0.225
+    ],
+    "pos": [
+     -0.655,
+     0,
+     0.625
+    ],
+    "rgba": [
+     0.55,
+     0.38,
+     0.22,
+     1
+    ]
+   }
+  ]
+ },
+ "table": {
+  "top_z": 0.82,
+  "front_edge_x": -0.304,
+  "depth": 0.9,
+  "width": 1.5,
+  "thickness": 0.03,
+  "boxes": [
+   {
+    "name": "table_top",
+    "type": "box",
+    "size_half": [
+     0.45,
+     0.75,
+     0.015
+    ],
+    "pos": [
+     0.146,
+     0,
+     0.805
+    ],
+    "rgba": [
+     0.8,
+     0.74,
+     0.62,
+     1
+    ]
+   },
+   {
+    "name": "table_leg0",
+    "type": "box",
+    "size_half": [
+     0.02,
+     0.02,
+     0.395
+    ],
+    "pos": [
+     0.546,
+     0.7,
+     0.395
+    ],
+    "rgba": [
+     0.45,
+     0.42,
+     0.38,
+     1
+    ]
+   },
+   {
+    "name": "table_leg1",
+    "type": "box",
+    "size_half": [
+     0.02,
+     0.02,
+     0.395
+    ],
+    "pos": [
+     0.546,
+     -0.7,
+     0.395
+    ],
+    "rgba": [
+     0.45,
+     0.42,
+     0.38,
+     1
+    ]
+   },
+   {
+    "name": "table_leg2",
+    "type": "box",
+    "size_half": [
+     0.02,
+     0.02,
+     0.395
+    ],
+    "pos": [
+     -0.254,
+     0.7,
+     0.395
+    ],
+    "rgba": [
+     0.45,
+     0.42,
+     0.38,
+     1
+    ]
+   },
+   {
+    "name": "table_leg3",
+    "type": "box",
+    "size_half": [
+     0.02,
+     0.02,
+     0.395
+    ],
+    "pos": [
+     -0.254,
+     -0.7,
+     0.395
+    ],
+    "rgba": [
+     0.45,
+     0.42,
+     0.38,
+     1
+    ]
+   }
+  ],
+  "note": "Top height = IIT's lab table scaled into robot size (subject 7, scale 1.23: 0.809-0.842 m across takes, median 0.824). For subject 9 at scale 1.10 the median is 0.80 m. Front edge ~2.3 cm in front of the torso's front surface."
+ },
+ "relative_to_base_origin": {
+  "seat_top_below_base_m": 0.3479,
+  "seat_front_edge_ahead_m": 0.1185,
+  "backrest_face_behind_m": 0.2856,
+  "table_front_edge_ahead_m": 0.0504,
+  "table_top_above_base_m": 0.0721
+ },
+ "provenance": {
+  "seated_design": "primi_stimuli/runs/seated_pose_2026-10-12 (kinematic design, verified: feet flat, closed chain, joint limits)",
+  "retarget": "primi_stimuli/runs/iit_retarget_pilot_2026-10-13",
+  "caveats": [
+   "Kinematic design only: PAL has not checked the thigh-shell load on a seat edge or how to fix the robot to a chair.",
+   "Thigh contact: in our model only ~4 cm of the thigh shells rest on the seat front edge; PAL's RH8D model has different collision meshes (run apply_seated_setup.py to see contacts in yours)."
+  ]
+ }
+}

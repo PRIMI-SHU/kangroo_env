@@ -1,0 +1,35 @@
+import pathlib, subprocess
+
+def test_clones_present():
+    for d in ("pal_mjlab", "LIBERO"):
+        assert pathlib.Path("/workspace", d).is_dir(), f"missing {d}/: run ./setup.sh on the host"
+
+def test_assets_present():
+    for p in ("cup/model.xml", "bowl/model.xml", "bottle/objects/bottle.xml"):
+        assert pathlib.Path("/workspace/assets", p).is_file(), f"missing assets/{p}: run ./setup.sh on the host"
+
+def test_mjlab_stack_versions():
+    import mujoco, importlib.metadata as md
+    assert mujoco.__version__.startswith("3.11.")
+    assert md.version("mujoco-warp").startswith("3.11.")
+    assert md.version("mjlab") == "1.6.0"
+    from pal_mjlab.robots.pal_kangaroo.kangaroo_constants import KANGAROO_HANDS_XML
+    assert KANGAROO_HANDS_XML.exists()
+
+def test_editable_paths_point_at_workspace():
+    import pal_mjlab
+    assert pal_mjlab.__file__.startswith("/workspace/pal_mjlab/")
+    out = subprocess.run(["/opt/venvs/libero/bin/python", "-c", "import libero.libero as l; print(l.__file__)"],
+                         capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=120)
+    assert out.stdout.startswith("/workspace/LIBERO/"), out.stderr
+
+def test_libero_imports_without_prompt_and_resets():
+    # stdin=DEVNULL: an input() prompt raises EOFError and fails the test.
+    code = ("import os; from libero.libero import benchmark, get_libero_path;"
+            "from libero.libero.envs import OffScreenRenderEnv;"
+            "t=benchmark.get_benchmark_dict()['libero_spatial']().get_task(0);"
+            "e=OffScreenRenderEnv(bddl_file_name=os.path.join(get_libero_path('bddl_files'),t.problem_folder,t.bddl_file),"
+            "camera_heights=64,camera_widths=64); e.reset(); e.close(); print('OK')")
+    out = subprocess.run(["/opt/venvs/libero/bin/python", "-c", code], capture_output=True, text=True,
+                         stdin=subprocess.DEVNULL, timeout=600)
+    assert "OK" in out.stdout, out.stderr[-2000:]
