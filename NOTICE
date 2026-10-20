@@ -1,0 +1,5 @@
+This image redistributes the Kangaroo MuJoCo models (MJCF + meshes) from PAL Robotics'
+`kangaroo_mujoco` ROS 2 package (ros-humble-kangaroo-mujoco), licensed under the
+Apache License 2.0. Its package.xml is kept at /opt/kangaroo/package.xml in the image.
+
+LIBERO (hf-libero), robosuite and MuJoCo are installed from PyPI under their own licenses.
