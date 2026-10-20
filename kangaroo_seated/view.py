@@ -1,4 +1,4 @@
-"""View the seated Kangaroo scene: live window by default, or --video out.mp4 headless.
+"""View the seated Kangaroo scene: `python -m kangaroo_seated.view` (live window) or `... --video out.mp4` (headless).
 
 Arms are held by pal_mjlab's position actuators with both hands resting on the table.
 """

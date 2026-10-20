@@ -1,0 +1,14 @@
+[project]
+name = "kangaroo-seated"
+version = "0.1.0"  # bump on any change to the promised interface (README "Use it from another project")
+description = "Seated PAL Kangaroo at a table in a LIBERO room, as an mjlab SceneCfg and a plain MuJoCo model"
+requires-python = ">=3.10"
+# Runs in the image's mjlab venv: mjlab 1.6.0 and pal_mjlab (pinned clone) come from there, so it is installed --no-deps.
+dependencies = ["mjlab==1.6.0"]
+
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["kangaroo_seated"]

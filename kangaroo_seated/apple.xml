@@ -2,7 +2,7 @@
      collision (convex hull, capped at 64 vertices: the full 8k-vertex hull's tiny facets make the contact chatter).
      Mass is YCB's measured 68 g; condim 6 adds rolling friction so the apple stays put. -->
 <mujoco model="apple">
-  <compiler meshdir="/workspace/assets/apple" texturedir="/workspace/assets/apple"/>
+  <compiler meshdir="../assets/apple" texturedir="../assets/apple"/>
   <asset>
     <texture name="apple" type="2d" file="texture_map.png"/>
     <material name="apple" texture="apple"/>

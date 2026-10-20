@@ -7,8 +7,12 @@ A ready-to-run Docker environment with a seated Kangaroo scene (MuJoCo / mjlab) 
 ### Setup
 
 **Image**:
-The single Docker container the team develops in, built on ROS 2 Humble.
+The Docker image, built on ROS 2 Humble, that the team develops in and that other projects build on (`FROM robot-learning`).
 _Avoid_: environment, container setup
+
+**Consuming project**:
+Another project that builds on the image and uses the seated scene through its promised interface.
+_Avoid_: client, downstream repo
 
 **Venv**:
 One of the two isolated Python installations inside the image: `mjlab` (Kangaroo simulation) or `libero` (original LIBERO).

@@ -13,6 +13,12 @@ Date: 2026-10-19, revised 2026-10-20. Status: **approved** (revision approved 20
 > no apple exists in Google Scanned Objects or robosuite); objects move to 40 cm from the table's front edge
 > (`OBJECT_X = 0.10`, ~80% of measured reach). Start pose is `seated_hands_on_table` with small elbow/shoulder
 > changes so both hands rest on the table; arms use pal_mjlab's actuators; forearm/hand meshes collide.
+>
+> **Revision 2026-10-20 (architecture review, user-approved):** the image is also a base for other projects
+> (ADR 0002). Everything it provides lives in `/opt/robot-learning`; `/workspace` is for the consuming project, and
+> developers mount this repo over `/opt/robot-learning`. `kangaroo_seated` is an editable-installed package
+> (`kangaroo-seated` 0.1.0, no `PYTHONPATH`); `make_model()` compiles the mjlab `SceneCfg` (one scene assembly,
+> mjlab names such as `cup/cup`); the viewer is `python -m kangaroo_seated.view`. Promised interface: README section 4.
 
 ## Intent and why
 

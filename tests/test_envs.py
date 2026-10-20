@@ -1,14 +1,16 @@
 import pathlib, subprocess
 
+ROOT = pathlib.Path(__file__).resolve().parents[1]  # /opt/robot-learning in the image
+
 def test_clones_present():
     for d in ("pal_mjlab", "LIBERO"):
-        assert pathlib.Path("/workspace", d).is_dir(), f"missing {d}/: run ./setup.sh on the host"
+        assert (ROOT / d).is_dir(), f"missing {d}/: run ./setup.sh on the host"
 
 def test_assets_present():
     for p in ("cup/model.xml", "cup/model.obj", "cup/texture.png",
               "apple/textured.obj", "apple/texture_map.png",
               "bottle/objects/bottle.xml", "bottle/objects/meshes/bottle.stl", "bottle/textures/glass.png"):
-        f = pathlib.Path("/workspace/assets", p)
+        f = ROOT / "assets" / p
         assert f.is_file() and f.stat().st_size > 0, f"missing/empty assets/{p}: run ./setup.sh on the host"
 
 def test_ros_humble_python():
@@ -25,12 +27,12 @@ def test_mjlab_stack_versions():
     from pal_mjlab.robots.pal_kangaroo.kangaroo_constants import KANGAROO_HANDS_XML
     assert KANGAROO_HANDS_XML.exists()
 
-def test_editable_paths_point_at_workspace():
+def test_editable_paths_point_at_root():
     import pal_mjlab
-    assert pal_mjlab.__file__.startswith("/workspace/pal_mjlab/")
+    assert pal_mjlab.__file__.startswith(f"{ROOT}/pal_mjlab/")
     out = subprocess.run(["/opt/venvs/libero/bin/python", "-c", "import sys, libero.libero as l; assert sys.version_info[:2] == (3, 10); print(l.__file__)"],
                          capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=120)
-    assert out.stdout.startswith("/workspace/LIBERO/"), out.stderr
+    assert out.stdout.startswith(f"{ROOT}/LIBERO/"), out.stderr
 
 def test_libero_imports_without_prompt_and_resets():
     # stdin=DEVNULL: an input() prompt raises EOFError and fails the test.

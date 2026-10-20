@@ -7,6 +7,8 @@ def test_import_is_silent():
 
 def step_1s(m, d): mujoco.mj_step(m, d, nstep=int(1.0 / m.opt.timestep))
 
+def bodies(m, c): return {m.body(m.geom_bodyid[c.geom1]).name, m.body(m.geom_bodyid[c.geom2]).name}
+
 def test_matches_confirmed_setup():
     m, d = make_model()
     assert np.allclose(d.body("robot/base_link").xpos, [-0.3544, 0, 0.7479], atol=1e-4)
@@ -18,21 +20,21 @@ def test_matches_confirmed_setup():
     for n, q in POSE.items():
         lo, hi = m.joint(f"robot/{n}").range
         assert lo - 1e-9 <= q <= hi + 1e-9, n
+        assert abs(d.joint(f"robot/{n}").qpos[0] - q) < 1e-9, n  # make_model starts at the pose
 
 def test_seated_scene_holds():
     m, d = make_model(); step_1s(m, d)
     assert np.isfinite(d.qpos).all()
     assert max(abs(d.joint(f"robot/{n}").qpos[0] - POSE[n]) for n in HELD_JOINTS) < 0.05
-    assert any("chair" in (m.body(m.geom_bodyid[c.geom1]).name, m.body(m.geom_bodyid[c.geom2]).name)
-               for c in d.contact[:d.ncon])
+    assert any("chair/chair" in bodies(m, c) for c in d.contact[:d.ncon])
 
 def test_objects_stay_on_table():
     m, d = make_model()
-    z0 = {o: d.body(o).xpos[2] for o in OBJECTS}
+    z0 = {o: d.body(f"{o}/{o}").xpos[2] for o in OBJECTS}
     step_1s(m, d)
     for o in OBJECTS:
-        assert abs(d.body(o).xpos[2] - z0[o]) < 0.02, o
-        assert np.linalg.norm(d.body(o).cvel) < 0.05, o
+        assert abs(d.body(f"{o}/{o}").xpos[2] - z0[o]) < 0.02, o
+        assert np.linalg.norm(d.body(f"{o}/{o}").cvel) < 0.05, o
 
 def test_arms_held_with_hands_on_table():
     m, d = make_model(); step_1s(m, d)
@@ -57,9 +59,9 @@ def test_hands_rest_on_table_not_in_it():
             step_1s(m, d)
         touching = {"left": [], "right": []}
         for c in d.contact[:d.ncon]:
-            names = {m.body(m.geom_bodyid[c.geom1]).name, m.body(m.geom_bodyid[c.geom2]).name}
+            names = bodies(m, c)
             arm = next((n for n in names if n.startswith(("robot/arm_", "robot/hand_"))), None)
-            if "table" in names and arm:
+            if "table/table" in names and arm:
                 assert c.dist > -0.002, (t, arm, c.dist)
                 touching["left" if "left" in arm else "right"].append(arm)
         if t == "settled":
@@ -100,5 +102,5 @@ def min_palm_distance(m, d, side, target):
 def test_each_object_reachable():
     m, d = make_model()
     for o in OBJECTS:
-        best = min(min_palm_distance(m, d, s, d.body(o).xpos.copy()) for s in ("left", "right"))
+        best = min(min_palm_distance(m, d, s, d.body(f"{o}/{o}").xpos.copy()) for s in ("left", "right"))
         assert best < 0.10, (o, best)

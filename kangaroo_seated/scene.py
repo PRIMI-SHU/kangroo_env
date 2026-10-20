@@ -1,6 +1,9 @@
-"""Kangaroo seated on a chair at a table, hands resting on it, with a cup, bottle and apple (MjSpec).
+"""The seated scene: Kangaroo on a chair at a table, hands resting on it, with a cup, bottle and apple.
 
-Arms, legs and trunk use pal_mjlab's own position actuators (kangaroo_constants COMMON_ACTUATORS); ctrl = target joint angles.
+Promised interface (README "Use it from another project"): make_scene_cfg(num_envs) -> mjlab SceneCfg, make_model() ->
+plain-MuJoCo (model, data) at the start pose compiled from that same SceneCfg, and POSE, HELD_JOINTS, OBJECTS. Entities:
+robot, room, chair, table, cup, bottle, apple; mjlab prefixes names with the entity ("robot/base_link", "cup/cup").
+Arms, legs and trunk use pal_mjlab's own position actuators (kangaroo_constants COMMON_ACTUATORS); ctrl = target angles.
 """
 import json
 import re
@@ -9,11 +12,13 @@ from pathlib import Path
 import mjlab  # noqa: F401  (first: its entry-point loader imports pal_mjlab.tasks, which is circular if pal_mjlab loads first)
 import mujoco
 import numpy as np
-from mjlab.entity import Entity, EntityCfg
+from mjlab.entity import EntityCfg
+from mjlab.scene import Scene, SceneCfg
 from pal_mjlab.robots.pal_kangaroo.kangaroo_constants import KANGAROO_HANDS_XML, get_kangaroo_hands_robot_cfg
 
-ROOM = "/workspace/LIBERO/libero/libero/assets/scenes/libero_tabletop_base_style.xml"
-ASSETS = Path("/workspace/assets")
+ROOT = Path(__file__).resolve().parents[1]  # pal_mjlab/, LIBERO/ and assets/ sit next to this package (/opt/robot-learning)
+ROOM = ROOT / "LIBERO/libero/libero/assets/scenes/libero_tabletop_base_style.xml"
+ASSETS = ROOT / "assets"
 OBJECT_XML = {"cup": ASSETS / "cup/model.xml", "apple": Path(__file__).with_name("apple.xml"),
               "bottle": ASSETS / "bottle/objects/bottle.xml"}
 OBJECT_BODY = {"cup": "model", "apple": "apple", "bottle": "object"}  # body of each XML that gets attached
@@ -33,7 +38,7 @@ HELD_JOINTS = [n for n in POSE if n.startswith(("leg_", "pelvis_")) and not n.en
 
 
 def room_spec():
-    spec = mujoco.MjSpec.from_file(ROOM)
+    spec = mujoco.MjSpec.from_file(str(ROOM))
     spec.delete(spec.body("table"))  # LIBERO's table; ours comes from the setup
     return spec
 
@@ -49,7 +54,7 @@ def furniture_spec(name):
 
 
 def robot_spec():
-    """kangaroo_hands without keyframes or free joint, base_link at the origin (the parent frame carries the setup pose)."""
+    """kangaroo_hands without keyframes or free joint, base_link at the origin (the entity's init_state places it)."""
     robot = mujoco.MjSpec.from_file(str(KANGAROO_HANDS_XML))
     for k in list(robot.keys):
         robot.delete(k)
@@ -77,16 +82,6 @@ def robot_cfg():
     return cfg
 
 
-def actuated_robot_spec():
-    """robot_spec with pal_mjlab's actuators and collision settings applied by mjlab, for plain MuJoCo."""
-    robot = Entity(robot_cfg()).spec
-    for k in list(robot.keys):
-        robot.delete(k)
-    root = robot.body("mocap_base")  # mjlab's fixed-base wrapper, placed at init_state; the attach frame does that here
-    root.pos, root.quat = [0, 0, 0], [1, 0, 0, 0]
-    return robot
-
-
 def object_spec(name):
     """Free-floating body `name` at the origin wrapping the object's XML body."""
     spec = mujoco.MjSpec()
@@ -96,49 +91,42 @@ def object_spec(name):
     return spec
 
 
-def object_pos(name, object_z=None):
-    return [OBJECT_X, (OBJECTS.index(name) - 1) * OBJECT_DY, SETUP["table"]["top_z"] + (object_z or {}).get(name, 0.0)]
+def object_pos(name):
+    """Start position: in the row on the table, origin raised so the lowest collision vertex sits 1 mm above the top."""
+    m = object_spec(name).compile()
+    d = mujoco.MjData(m); mujoco.mj_forward(m, d)
+    low = min((d.geom_xpos[g] + m.mesh_vert[m.mesh_vertadr[m.geom_dataid[g]]:][:m.mesh_vertnum[m.geom_dataid[g]]]
+               @ d.geom_xmat[g].reshape(3, 3).T)[:, 2].min()
+              for g in range(m.ngeom) if m.geom_contype[g] and m.geom_type[g] == mujoco.mjtGeom.mjGEOM_MESH)
+    return [OBJECT_X, (OBJECTS.index(name) - 1) * OBJECT_DY, SETUP["table"]["top_z"] - low + 0.001]
 
 
-def lock_held_joints(spec, prefix="robot/"):
+def lock_held_joints(spec):
     for n in HELD_JOINTS:
-        spec.add_equality(type=mujoco.mjtEq.mjEQ_JOINT, name1=prefix + n, data=[POSE[n]] + [0] * 10,
+        spec.add_equality(type=mujoco.mjtEq.mjEQ_JOINT, name1="robot/" + n, data=[POSE[n]] + [0] * 10,
                           solref=[2 * spec.option.timestep, 1])
 
 
-def build_spec(object_z=None):
-    spec = room_spec()
-    for k in ("chair", "table"):
-        spec.attach(furniture_spec(k), prefix="", frame=spec.worldbody.add_frame())
-    spec.attach(actuated_robot_spec(), prefix="robot/",
-                frame=spec.worldbody.add_frame(pos=SETUP["base_link"]["pos"], quat=SETUP["base_link"]["quat_wxyz"]))
-    for o in OBJECTS:
-        spec.attach(object_spec(o), prefix="", frame=spec.worldbody.add_frame(pos=object_pos(o, object_z)))
-    lock_held_joints(spec)
-    return spec
-
-
-def _rest_heights():
-    """Height of each object's origin above the table top so its lowest collision vertex touches it."""
-    m = build_spec().compile()
-    d = mujoco.MjData(m); mujoco.mj_forward(m, d)
-    low = {}
-    for g in range(m.ngeom):
-        o = next((o for o in OBJECTS if m.body(m.geom_bodyid[g]).name.startswith(o)), None)
-        if o is None or not m.geom_contype[g] or m.geom_type[g] != mujoco.mjtGeom.mjGEOM_MESH:
-            continue
-        a, n = m.mesh_vertadr[m.geom_dataid[g]], m.mesh_vertnum[m.geom_dataid[g]]
-        z = (d.geom_xpos[g] + m.mesh_vert[a:a + n] @ d.geom_xmat[g].reshape(3, 3).T)[:, 2].min()
-        low[o] = min(low.get(o, np.inf), z)
-    return {o: d.body(o).xpos[2] - z + 0.001 for o, z in low.items()}  # 1 mm above the table
+def make_scene_cfg(num_envs: int = 1) -> SceneCfg:
+    """The seated scene as an mjlab SceneCfg (task-free: entities only, no managers)."""
+    return SceneCfg(
+        num_envs=num_envs,
+        entities={
+            "room": EntityCfg(spec_fn=room_spec),
+            "chair": EntityCfg(spec_fn=lambda: furniture_spec("chair")),
+            "table": EntityCfg(spec_fn=lambda: furniture_spec("table")),
+            "robot": robot_cfg(),
+            **{o: EntityCfg(spec_fn=lambda o=o: object_spec(o), init_state=EntityCfg.InitialStateCfg(pos=tuple(object_pos(o))))
+               for o in OBJECTS},
+        },
+        spec_fn=lock_held_joints,
+    )
 
 
 def make_model():
-    m = build_spec(_rest_heights()).compile()
+    """Plain-MuJoCo (model, data) of the same scene, reset to mjlab's start keyframe (pose, object positions, ctrl targets)."""
+    m = Scene(make_scene_cfg(), device="cpu").spec.compile()
     d = mujoco.MjData(m)
-    for n, q in POSE.items():
-        d.joint(f"robot/{n}").qpos[0] = q
-    for i in range(m.nu):  # hold every actuated joint at the pose
-        d.ctrl[i] = POSE[m.actuator(i).name.removeprefix("robot/")]
+    mujoco.mj_resetDataKeyframe(m, d, m.key("init_state").id)
     mujoco.mj_forward(m, d)
     return m, d
