@@ -25,7 +25,7 @@ PAL Robotics' mjlab package that provides the Kangaroo model, its actuators and 
 _Avoid_: kangaroo_mujoco, ROS package
 
 **Fixed base**:
-The Kangaroo pelvis held at the seated pose on the chair, with legs and trunk locked, so the robot cannot fall; arms are held by position actuators, forearms resting on the table.
+The Kangaroo pelvis held at the seated pose on the chair, with legs and trunk locked, so the robot cannot fall; arms are held by position actuators, hands resting on the table.
 _Avoid_: welded base, pinned robot
 
 ### LIBERO

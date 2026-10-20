@@ -42,8 +42,9 @@ docker run --rm -it --gpus all -e DISPLAY=$DISPLAY -e MUJOCO_GL=glfw -e PYOPENGL
   -v /tmp/.X11-unix:/tmp/.X11-unix -v "$PWD:/workspace" robot-learning python view.py
 ```
 
-The robot starts in the confirmed `seated_hands_on_table` pose, forearms resting on the table, with
-every joint held by pal_mjlab's own position actuators (the same ones mjlab uses).
+The robot starts in the confirmed `seated_hands_on_table` pose (elbows adjusted a few degrees so both hands
+rest on the table top), with every joint held by pal_mjlab's own position actuators (the same ones mjlab
+uses). The forearm and hand meshes are the collision shapes, so hands touch the table and objects as drawn.
 
 ## 3. Build your own work on it
 

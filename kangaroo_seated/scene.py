@@ -3,6 +3,7 @@
 Arms, legs and trunk use pal_mjlab's own position actuators (kangaroo_constants COMMON_ACTUATORS); ctrl = target joint angles.
 """
 import json
+import re
 from pathlib import Path
 
 import mjlab  # noqa: F401  (first: its entry-point loader imports pal_mjlab.tasks, which is circular if pal_mjlab loads first)
@@ -20,7 +21,14 @@ OBJECTS = ("cup", "bottle", "bowl")
 OBJECT_X = -0.05          # final value, x offset of the objects from the table centre
 OBJECT_DY = 0.15          # spacing in y, centred on y = 0
 SETUP = json.load(open(Path(__file__).with_name("seated_setup.json")))
-POSE = SETUP["poses"]["seated_hands_on_table"]["joints"]  # same legs as seated_arms_at_side, hands resting on the table
+# Confirmed seated_hands_on_table pose (same legs as seated_arms_at_side). With collision on the visible meshes it puts the
+# left fingertips 25 mm into the table and the right hand 20 mm above it (forearm 1.5 mm in). Smallest changes that start
+# each hand ~0.5 mm above the top (tests/test_scene.py checks the contacts):
+POSE = {**SETUP["poses"]["seated_hands_on_table"]["joints"],
+        "arm_left_4_joint": 1.557591,    # elbow +0.072 rad: fingertips on the table, forearm 29 mm above it
+        "arm_right_2_joint": 0.922775,   # shoulder -0.025 rad and
+        "arm_right_4_joint": 1.842134}   # elbow -0.047 rad: right hand and forearm both on the table
+FOREARM_AND_HAND = re.compile(r"(arm_(left|right)_[45]|hand_(left|right)_.*)_link")
 HELD_JOINTS = [n for n in POSE if n.startswith(("leg_", "pelvis_")) and not n.endswith(("_femur_joint", "_knee_joint"))]
 
 
@@ -49,6 +57,14 @@ def robot_spec():
     for j in base.joints:
         robot.delete(j)  # free joint 'origin'
     base.pos, base.quat = [0, 0, 0], [1, 0, 0, 0]
+    # pal_mjlab's hands have no collision geoms and the forearm collides as a coarse 7 cm capsule, so on the table
+    # the fingers sink in and the capsule props the hand up. Collide with the visible meshes instead (mjlab's
+    # CollisionCfg only keeps geoms named *_collision).
+    for s in ("left", "right"):
+        robot.delete(robot.geom(f"arm_{s}_4_collision"))
+    for i, g in enumerate(robot.geoms):
+        if g.type == mujoco.mjtGeom.mjGEOM_MESH and FOREARM_AND_HAND.fullmatch(g.parent.name):
+            g.name = f"{g.parent.name}_mesh{i}_collision"
     return robot
 
 

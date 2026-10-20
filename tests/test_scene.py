@@ -38,17 +38,34 @@ def test_arms_held_with_hands_on_table():
     m, d = make_model(); step_1s(m, d)
     arms = [n for n in POSE if n.startswith("arm_")]
     assert len(arms) == 10 and all(m.actuator(f"robot/{n}") for n in arms)  # PAL's arm actuators, not free
-    assert max(abs(d.joint(f"robot/{n}").qpos[0] - POSE[n]) for n in arms) < 0.1
-    for s in ("left", "right"):  # each forearm rests on the table
-        assert any({m.body(m.geom_bodyid[c.geom1]).name, m.body(m.geom_bodyid[c.geom2]).name} == {f"robot/arm_{s}_4_link", "table"}
-                   for c in d.contact[:d.ncon]), s
+    assert max(abs(d.joint(f"robot/{n}").qpos[0] - POSE[n]) for n in arms) < 0.1  # table contact: test_hands_rest_on_table_not_in_it
 
-def test_arms_rest_on_table_not_in_it():
-    m, d = make_model(); step_1s(m, d)
-    arm_table = [c.dist for c in d.contact[:d.ncon]
-                 if {m.body(m.geom_bodyid[c.geom1]).name, m.body(m.geom_bodyid[c.geom2]).name} & {"table"}
-                 and "arm_" in m.body(m.geom_bodyid[c.geom1]).name + m.body(m.geom_bodyid[c.geom2]).name]
-    assert arm_table and min(arm_table) > -0.005, arm_table
+def hand_low_z(m, d, side):
+    """Lowest vertex of the hand's collision meshes."""
+    z = []
+    for g in range(m.ngeom):
+        if m.geom(g).name.startswith(f"robot/hand_{side}") and m.geom(g).name.endswith("_collision"):
+            a, n = m.mesh_vertadr[m.geom_dataid[g]], m.mesh_vertnum[m.geom_dataid[g]]
+            z.append((d.geom_xpos[g] + m.mesh_vert[a:a + n] @ d.geom_xmat[g].reshape(3, 3).T)[:, 2].min())
+    return min(z)
+
+def test_hands_rest_on_table_not_in_it():
+    """Visible forearm and hand meshes collide; each hand touches the table top and nothing sinks into it."""
+    m, d = make_model()
+    for t in ("start", "settled"):
+        if t == "settled":
+            step_1s(m, d)
+        touching = {"left": [], "right": []}
+        for c in d.contact[:d.ncon]:
+            names = {m.body(m.geom_bodyid[c.geom1]).name, m.body(m.geom_bodyid[c.geom2]).name}
+            arm = next((n for n in names if n.startswith(("robot/arm_", "robot/hand_"))), None)
+            if "table" in names and arm:
+                assert c.dist > -0.002, (t, arm, c.dist)
+                touching["left" if "left" in arm else "right"].append(arm)
+        if t == "settled":
+            for s in ("left", "right"):  # the hand or its wrist (arm_*_5, which carries the hand) is on the table
+                assert any("hand_" in n or "_5_link" in n for n in touching[s]), (s, touching[s])
+                assert hand_low_z(m, d, s) - 0.82 < 0.003, s  # no hand hovering above the top
 
 def test_arm_moves_and_renders():
     m, d = make_model()
