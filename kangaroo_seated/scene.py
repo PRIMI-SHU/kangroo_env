@@ -1,6 +1,6 @@
 """The seated scene: Kangaroo on a chair at a table, hands resting on it, with a cup, bottle and apple.
 
-Promised interface (README "Use it from another project"): make_scene_cfg(num_envs) -> mjlab SceneCfg, make_model() ->
+Promised interface (README "Promised interface"): make_scene_cfg(num_envs) -> mjlab SceneCfg, make_model() ->
 plain-MuJoCo (model, data) at the start pose compiled from that same SceneCfg, and POSE, HELD_JOINTS, OBJECTS. Entities:
 robot, room, chair, table, cup, bottle, apple; mjlab prefixes names with the entity ("robot/base_link", "cup/cup").
 Arms, legs and trunk use pal_mjlab's own position actuators (kangaroo_constants COMMON_ACTUATORS); ctrl = target angles.
