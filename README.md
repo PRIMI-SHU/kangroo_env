@@ -47,8 +47,14 @@ docker run -it --name robot-learning-gui --gpus all --device /dev/dri \
   robot-learning
 ```
 
-Inside, `python -m kangaroo_seated.view` opens the live window (mouse to orbit and zoom). Come back later with
-`docker start -ai robot-learning-gui` (re-run `xhost` after a reboot); remove it with `docker rm robot-learning-gui`.
+Then, inside the container, run the simulation in a window (mouse to orbit and zoom; close the window to stop):
+
+```bash
+python -m kangaroo_seated.view
+```
+
+Come back to the same container later with `docker start -ai robot-learning-gui` (re-run `xhost` first after a
+reboot) and run the simulation again the same way. Remove it with `docker rm robot-learning-gui`.
 
 Both start in bash, in this repo, with ROS sourced and the mjlab venv active. The repo is mounted over
 `/opt/robot-learning`, so host edits are live without a rebuild. The warp-cache mount keeps compiled GPU
