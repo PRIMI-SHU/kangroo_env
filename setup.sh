@@ -28,7 +28,7 @@ fetch $RS/textures/glass.png assets/bottle/textures/glass.png
 # YCB 013_apple (Google 16k scan). The YCB server is http-only, so the archive is checked against a pinned sha256.
 if [ ! -s assets/apple/texture_map.png ]; then
   fetch http://ycb-benchmarks.s3-website-us-east-1.amazonaws.com/data/google/013_apple_google_16k.tgz assets/apple.tgz
-  echo "46249b76379bae26a6f78861b5568ceed25cf1e397530a313430b1d94d57320c  assets/apple.tgz" | sha256sum -c --quiet
+  echo "46249b76379bae26a6f78861b5568ceed25cf1e397530a313430b1d94d57320c  assets/apple.tgz" | sha256sum -c --quiet || { rm assets/apple.tgz; exit 1; }
   mkdir -p assets/apple && tar -xzf assets/apple.tgz -C assets/apple --strip-components=2 \
     013_apple/google_16k/textured.obj 013_apple/google_16k/textured.mtl 013_apple/google_16k/texture_map.png
   rm assets/apple.tgz

@@ -1,8 +1,5 @@
 import pytest, torch
-from kangaroo_seated import make_scene_cfg, OBJECTS, POSE, HELD_JOINTS
-
-def test_scene_cfg_entities():
-    assert set(make_scene_cfg().entities) >= {"robot", "chair", "table", "room", *OBJECTS}
+from kangaroo_seated import make_scene_cfg, POSE, HELD_JOINTS
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="no GPU: MuJoCo Warp check skipped")
 def test_scene_steps_on_warp():

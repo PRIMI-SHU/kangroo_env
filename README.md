@@ -3,15 +3,13 @@
 A Docker image (ROS 2 Humble, Ubuntu 22.04, Python 3.10) for robot-learning work with PAL Robotics'
 **Kangaroo** humanoid, and a base other projects build on. It ships one task-free scene: Kangaroo seated on
 a chair at a table with a cup, a water bottle and an apple, for seated upper-limb rehab work. No task is
-defined; you add your own. Terms are defined in [CONTEXT.md](CONTEXT.md).
-
-![Seated Kangaroo at the table](docs/kangaroo_seated.png)
+defined; you add your own.
 
 ## 1. Build and start the image
 
 Host needs: git, curl, python3, Docker, and the NVIDIA Container Toolkit for `--gpus`.
 
-**Fetch the sources** (once, and again after changing a pin in it):
+**Fetch the sources** (once; after changing a pin in it, delete the folder that pin fills and run it again):
 
 ```bash
 ./setup.sh
@@ -63,7 +61,7 @@ kernels (the first GPU run compiles for ~4 min).
 **Run the tests** (inside the container):
 
 ```bash
-pytest -q tests                                          # 19 passed
+pytest -q tests                                          # 18 passed
 ```
 
 **Record a video in one command** (headless, from the host; writes `out/kangaroo.mp4`):
@@ -101,10 +99,9 @@ for `list-envs`, `play` and `train`.
 **ROS 2:** `ros2` and `rclpy` work in every shell, so a node can read or drive the simulation; nothing is wired up yet.
 
 **LIBERO** (separate venv): `/opt/venvs/libero/bin/python your_script.py`. To use LIBERO objects in the Kangaroo
-scene, load their MuJoCo files from `LIBERO/`; never import LIBERO into the mjlab venv
-([ADR 0001](docs/adr/0001-one-simulator-libero-as-scene-content.md)).
+scene, load their MuJoCo files from `LIBERO/`; never import LIBERO into the mjlab venv (numpy versions clash).
 
-**From another project**, build on the image instead of copying this repo ([ADR 0002](docs/adr/0002-reuse-through-the-base-image.md)):
+**From another project**, build on the image instead of copying this repo:
 
 ```dockerfile
 FROM robot-learning

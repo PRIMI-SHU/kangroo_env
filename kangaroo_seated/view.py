@@ -2,7 +2,7 @@
 
 Arms are held by pal_mjlab's position actuators with both hands resting on the table.
 """
-import argparse, time, imageio, mujoco
+import argparse, os, time, imageio, mujoco
 from kangaroo_seated import make_model
 
 LOOKAT, DISTANCE, AZIMUTH, ELEVATION = [-0.1, 0, 0.75], 2.2, 90, -10  # in-room camera (LIBERO walls make the default far away)
@@ -12,6 +12,7 @@ p.add_argument("--video"); p.add_argument("--seconds", type=float, default=5)
 a = p.parse_args()
 m, d = make_model()
 if a.video:
+    os.makedirs(os.path.dirname(a.video) or ".", exist_ok=True)
     cam = mujoco.MjvCamera(); cam.lookat[:] = LOOKAT; cam.distance, cam.azimuth, cam.elevation = DISTANCE, AZIMUTH, ELEVATION
     with mujoco.Renderer(m, 480, 640) as r, imageio.get_writer(a.video, fps=30) as w:
         for _ in range(int(a.seconds * 30)):

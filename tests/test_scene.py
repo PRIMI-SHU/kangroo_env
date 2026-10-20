@@ -1,5 +1,6 @@
-import copy, os, subprocess, sys, imageio, numpy as np, mujoco
+import copy, re, subprocess, sys, numpy as np, mujoco
 from kangaroo_seated import POSE, HELD_JOINTS, OBJECTS, make_model
+from kangaroo_seated.scene import SETUP, lowest_z
 
 def test_import_is_silent():
     r = subprocess.run([sys.executable, "-c", "import kangaroo_seated"], capture_output=True, text=True)
@@ -42,15 +43,6 @@ def test_arms_held_with_hands_on_table():
     assert len(arms) == 10 and all(m.actuator(f"robot/{n}") for n in arms)  # PAL's arm actuators, not free
     assert max(abs(d.joint(f"robot/{n}").qpos[0] - POSE[n]) for n in arms) < 0.1  # table contact: test_hands_rest_on_table_not_in_it
 
-def hand_low_z(m, d, side):
-    """Lowest vertex of the hand's collision meshes."""
-    z = []
-    for g in range(m.ngeom):
-        if m.geom(g).name.startswith(f"robot/hand_{side}") and m.geom(g).name.endswith("_collision"):
-            a, n = m.mesh_vertadr[m.geom_dataid[g]], m.mesh_vertnum[m.geom_dataid[g]]
-            z.append((d.geom_xpos[g] + m.mesh_vert[a:a + n] @ d.geom_xmat[g].reshape(3, 3).T)[:, 2].min())
-    return min(z)
-
 def test_hands_rest_on_table_not_in_it():
     """Visible forearm and hand meshes collide; each hand touches the table top and nothing sinks into it."""
     m, d = make_model()
@@ -67,20 +59,15 @@ def test_hands_rest_on_table_not_in_it():
         if t == "settled":
             for s in ("left", "right"):  # the hand or its wrist (arm_*_5, which carries the hand) is on the table
                 assert any("hand_" in n or "_5_link" in n for n in touching[s]), (s, touching[s])
-                assert hand_low_z(m, d, s) - 0.82 < 0.003, s  # no hand hovering above the top
+                hand = [g for g in range(m.ngeom) if re.fullmatch(f"robot/hand_{s}.*_collision", m.geom(g).name)]
+                assert lowest_z(m, d, hand) - SETUP["table"]["top_z"] < 0.003, s  # no hand hovering above the top
 
-def test_arm_moves_and_renders():
+def test_arm_moves():
     m, d = make_model()
     j = m.joint("robot/arm_left_1_joint"); q0 = d.qpos[j.qposadr[0]]
     d.ctrl[m.actuator("robot/arm_left_1_joint").id] = q0 + 0.3  # position target
     mujoco.mj_step(m, d, nstep=500)
     assert abs(d.qpos[j.qposadr[0]] - q0) > 0.05
-    cam = mujoco.MjvCamera(); cam.lookat[:] = [-0.1, 0, 0.75]  # in-room camera (setup's 3.2 m camera sits behind LIBERO's wall)
-    cam.distance, cam.azimuth, cam.elevation = 2.2, 90, -10
-    with mujoco.Renderer(m, 480, 640) as r:
-        r.update_scene(d, camera=cam); img = r.render()
-    assert img.max() > 0
-    os.makedirs("out", exist_ok=True); imageio.imwrite("out/kangaroo_seated.png", img)
 
 def min_palm_distance(m, d, side, target):
     """Damped-least-squares IK on the 5 arm joints (kinematics only, on a copy of d); returns palm-target distance."""

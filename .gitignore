@@ -1,10 +1,18 @@
+# Fetched by setup.sh
 pal_mjlab/
 LIBERO/
 assets/
+
+# Generated
 out/
+docs/
 __pycache__/
+*.egg-info/
 .pytest_cache/
 .ruff_cache/
+MUJOCO_LOG.TXT
+
+# Local tool state
 .remember/
 .superpowers/
-MUJOCO_LOG.TXT
+.claude/

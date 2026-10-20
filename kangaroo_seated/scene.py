@@ -5,6 +5,7 @@ plain-MuJoCo (model, data) at the start pose compiled from that same SceneCfg, a
 robot, room, chair, table, cup, bottle, apple; mjlab prefixes names with the entity ("robot/base_link", "cup/cup").
 Arms, legs and trunk use pal_mjlab's own position actuators (kangaroo_constants COMMON_ACTUATORS); ctrl = target angles.
 """
+import functools
 import json
 import re
 from pathlib import Path
@@ -91,14 +92,21 @@ def object_spec(name):
     return spec
 
 
+def lowest_z(m, d, geoms):
+    """Lowest world z over the vertices of the given mesh geoms (mj_geomDistance is unreliable between meshes)."""
+    def low(g):
+        a, n = m.mesh_vertadr[m.geom_dataid[g]], m.mesh_vertnum[m.geom_dataid[g]]
+        return (d.geom_xpos[g] + m.mesh_vert[a:a + n] @ d.geom_xmat[g].reshape(3, 3).T)[:, 2].min()
+    return min(low(g) for g in geoms)
+
+
+@functools.cache
 def object_pos(name):
     """Start position: in the row on the table, origin raised so the lowest collision vertex sits 1 mm above the top."""
     m = object_spec(name).compile()
     d = mujoco.MjData(m); mujoco.mj_forward(m, d)
-    low = min((d.geom_xpos[g] + m.mesh_vert[m.mesh_vertadr[m.geom_dataid[g]]:][:m.mesh_vertnum[m.geom_dataid[g]]]
-               @ d.geom_xmat[g].reshape(3, 3).T)[:, 2].min()
-              for g in range(m.ngeom) if m.geom_contype[g] and m.geom_type[g] == mujoco.mjtGeom.mjGEOM_MESH)
-    return [OBJECT_X, (OBJECTS.index(name) - 1) * OBJECT_DY, SETUP["table"]["top_z"] - low + 0.001]
+    low = lowest_z(m, d, [g for g in range(m.ngeom) if m.geom_contype[g] and m.geom_type[g] == mujoco.mjtGeom.mjGEOM_MESH])
+    return OBJECT_X, (OBJECTS.index(name) - 1) * OBJECT_DY, SETUP["table"]["top_z"] - low + 0.001
 
 
 def lock_held_joints(spec):
@@ -116,7 +124,7 @@ def make_scene_cfg(num_envs: int = 1) -> SceneCfg:
             "chair": EntityCfg(spec_fn=lambda: furniture_spec("chair")),
             "table": EntityCfg(spec_fn=lambda: furniture_spec("table")),
             "robot": robot_cfg(),
-            **{o: EntityCfg(spec_fn=lambda o=o: object_spec(o), init_state=EntityCfg.InitialStateCfg(pos=tuple(object_pos(o))))
+            **{o: EntityCfg(spec_fn=lambda o=o: object_spec(o), init_state=EntityCfg.InitialStateCfg(pos=object_pos(o)))
                for o in OBJECTS},
         },
         spec_fn=lock_held_joints,

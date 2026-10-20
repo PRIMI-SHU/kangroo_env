@@ -1,6 +1,10 @@
+.git
 out/
 **/.venv
 **/__pycache__
+*.egg-info/
 docs/
+.remember/
 .superpowers/
 .pytest_cache/
+.ruff_cache/

@@ -4,7 +4,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       git cmake build-essential python3-dev libegl1 libgl1 libosmesa6 libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Everything this image provides lives in /opt/robot-learning; /workspace is left for the consuming project (ADR 0002).
+# Everything this image provides lives in /opt/robot-learning; /workspace is left for the consuming project.
 WORKDIR /opt/robot-learning
 COPY pal_mjlab pal_mjlab
 COPY LIBERO LIBERO
