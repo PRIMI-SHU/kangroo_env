@@ -1,0 +1,13 @@
+# Build the CPU image and run the tests on every push. No GPU here: the Warp test skips and rendering uses OSMesa.
+name: test
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Free disk space (the image is ~15 GB)
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache /usr/local/share/boost && df -h /
+      - uses: actions/checkout@v7
+      - run: ./setup.sh
+      - run: docker build -t robot-learning --build-arg TORCH_EXTRA=cpu .
+      - run: docker run --rm -e MUJOCO_GL=osmesa -e PYOPENGL_PLATFORM=osmesa robot-learning pytest -q /opt/robot-learning/tests
