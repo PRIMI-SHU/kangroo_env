@@ -149,5 +149,7 @@ tests/                pytest suite, including a check that another project can u
 ## Sources
 
 - Seated setup (pose, table, chair, object layout): `seated_setup_for_libero`, `seated_setup.json` version 2026-10-19.
-- Kangaroo: [pal_mjlab](https://github.com/pal-robotics/pal_mjlab). LIBERO: [Lifelong-Robot-Learning/LIBERO](https://github.com/Lifelong-Robot-Learning/LIBERO).
-- Objects: cup from Google Scanned Objects via [mujoco_scanned_objects](https://github.com/kevinzakka/mujoco_scanned_objects); bottle from robosuite v1.5.2; apple from the [YCB set](https://www.ycbbenchmarks.com/) (`013_apple`). See [NOTICE](NOTICE).
+- Kangaroo: [pal_mjlab](https://github.com/pal-robotics/pal_mjlab) (Apache 2.0). LIBERO: [Lifelong-Robot-Learning/LIBERO](https://github.com/Lifelong-Robot-Learning/LIBERO) (MIT).
+- Cup: Google Scanned Objects "Cole_Hardware_Mug_Classic_Blue" (CC BY 4.0, Google Research), via [mujoco_scanned_objects](https://github.com/kevinzakka/mujoco_scanned_objects).
+- Bottle: [robosuite](https://github.com/ARISE-Initiative/robosuite) v1.5.2 (MIT).
+- Apple: [YCB Object and Model Set](https://www.ycbbenchmarks.com/) "013_apple" (CC BY 4.0); B. Calli et al., IEEE Robotics & Automation Magazine, 2015.
