@@ -24,16 +24,21 @@ OBJECT_XML = {"cup": ASSETS / "cup/model.xml", "apple": Path(__file__).with_name
               "bottle": ASSETS / "bottle/objects/bottle.xml"}
 OBJECT_BODY = {"cup": "model", "apple": "apple", "bottle": "object"}  # body of each XML that gets attached
 OBJECTS = ("cup", "bottle", "apple")
-OBJECT_X = 0.10           # 40 cm from the table's front edge: ~80% of the palm's reach (reach runs out at ~50 cm)
-OBJECT_DY = 0.15          # spacing in y, centred on y = 0
 SETUP = json.load(open(Path(__file__).with_name("seated_setup.json")))
+# PAL's coarse collision shapes overlap the setup's furniture (femur capsules 15 mm into the seat, torso 7 mm into the
+# table edge), so the seat and backrest sit 15 mm lower (thighs just resting on it) and the table 8 mm further forward than in the setup.
+FURNITURE_SHIFT = {"chair_seat": (0, 0, -0.015), "chair_backrest": (0, 0, -0.015), "table": (0.008, 0, 0)}
+OBJECT_X = 0.10 + 0.008   # 40 cm from the table's front edge: ~80% of the palm's reach (reach runs out at ~50 cm)
+OBJECT_DY = 0.15          # spacing in y, centred on y = 0
+MASS = {"cup": 0.35, "bottle": 0.5}  # kg: a ceramic mug and a full 0.5 l bottle (the source models give 1.93 kg and 28 g)
 # Confirmed seated_hands_on_table pose (same legs as seated_arms_at_side). With collision on the visible meshes it puts the
-# left fingertips 25 mm into the table and the right hand 20 mm above it (forearm 1.5 mm in). Smallest changes that start
-# each hand ~0.5 mm above the top (tests/test_scene.py checks the contacts):
+# left fingertips 25 mm into the table and the right hand 20 mm above it. Smallest changes that lay each forearm, wrist
+# and hand ~1 mm above the top (tests/test_scene.py checks the contacts):
 POSE = {**SETUP["poses"]["seated_hands_on_table"]["joints"],
-        "arm_left_4_joint": 1.557591,    # elbow +0.072 rad: fingertips on the table, forearm 29 mm above it
+        "arm_left_2_joint": 1.042862,    # shoulder +0.35 rad and
+        "arm_left_4_joint": 1.417591,    # elbow -0.068 rad: left forearm, wrist and hand on the table
         "arm_right_2_joint": 0.922775,   # shoulder -0.025 rad and
-        "arm_right_4_joint": 1.842134}   # elbow -0.047 rad: right hand and forearm both on the table
+        "arm_right_4_joint": 1.842134}   # elbow -0.047 rad: right forearm, wrist and hand on the table
 FOREARM_AND_HAND = re.compile(r"(arm_(left|right)_[45]|hand_(left|right)_.*)_link")
 HELD_JOINTS = [n for n in POSE if n.startswith(("leg_", "pelvis_")) and not n.endswith(("_femur_joint", "_knee_joint"))]
 
@@ -49,8 +54,9 @@ def furniture_spec(name):
     spec = mujoco.MjSpec()
     body = spec.worldbody.add_body(name=name)
     for b in SETUP[name]["boxes"]:
+        shift = FURNITURE_SHIFT.get(b["name"], FURNITURE_SHIFT.get(name, (0, 0, 0)))
         body.add_geom(name=b["name"], type=mujoco.mjtGeom.mjGEOM_BOX, size=b["size_half"],
-                      pos=b["pos"], rgba=b["rgba"], contype=1, conaffinity=1, group=0)
+                      pos=np.add(b["pos"], shift), rgba=b["rgba"], contype=1, conaffinity=1, group=0)
     return spec
 
 
@@ -89,6 +95,10 @@ def object_spec(name):
     body = spec.worldbody.add_body(name=name)
     body.add_freejoint()
     body.add_frame().attach_body(mujoco.MjSpec.from_file(str(OBJECT_XML[name])).body(OBJECT_BODY[name]), name + "_", "")
+    if name in MASS:  # scale every geom's density: same shape of inertia, real total mass
+        scale = MASS[name] / spec.compile().body_subtreemass[1]
+        for g in spec.geoms:
+            g.density *= scale
     return spec
 
 

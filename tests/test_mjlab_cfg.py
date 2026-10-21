@@ -6,7 +6,7 @@ def test_scene_steps_on_warp():
     from mjlab.scene import Scene
     from mjlab.sim import Simulation, SimulationCfg
     scene = Scene(make_scene_cfg(num_envs=4), device="cuda:0")
-    sim = Simulation(num_envs=4, cfg=SimulationCfg(), spec=scene.spec, device="cuda:0")
+    sim = Simulation(num_envs=4, cfg=SimulationCfg(nconmax=128, njmax=600), spec=scene.spec, device="cuda:0")
     scene.initialize(sim.mj_model, sim.model, sim.data)
     sim.reset(); scene.reset()
     # what a task's reset_scene_to_default event + zero joint-position action (default offset) do

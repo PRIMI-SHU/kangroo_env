@@ -1,4 +1,5 @@
-FROM ros:humble-ros-base-jammy
+# Pinned digest of ros:humble-ros-base-jammy (2026-10-21): rebuilds get the same apt packages. Bump deliberately.
+FROM ros:humble-ros-base-jammy@sha256:566b87e6dfc48392189a9c32e594e84060fa9948de93b04e536f39475a1f6963
 COPY --from=ghcr.io/astral-sh/uv:0.9.5 /uv /uvx /bin/
 RUN apt-get update && apt-get install -y --no-install-recommends \
       git cmake build-essential python3-dev libegl1 libgl1 libosmesa6 libglib2.0-0 \
@@ -25,10 +26,10 @@ RUN uv venv /opt/venvs/libero \
     && uv pip install --python /opt/venvs/libero -r LIBERO/requirements.txt mujoco==3.2.3 \
        -e LIBERO -C editable_mode=compat
 
-# LIBERO calls input() on first import unless this config exists.
-RUN P=/opt/robot-learning/LIBERO/libero/libero && mkdir -p /root/.libero \
+# LIBERO calls input() on first import unless this config exists. Outside /root, so any --user can read it.
+RUN P=/opt/robot-learning/LIBERO/libero/libero && mkdir -p /etc/libero \
     && printf "benchmark_root: $P\nbddl_files: $P/bddl_files\ninit_states: $P/init_files\ndatasets: $P/../datasets\nassets: $P/assets\n" \
-       > /root/.libero/config.yaml
+       > /etc/libero/config.yaml && mkdir -m 777 -p /cache/warp
 
 # The seated scene package, editable so a repo mounted over /opt/robot-learning is live; deps come from the venv.
 COPY assets assets
@@ -39,7 +40,10 @@ RUN uv pip install --python /opt/venvs/mjlab --no-deps -e .
 
 # The base image's entrypoint sources ROS Humble for every command, including this bash.
 # ROS Humble's launch_testing pytest plugins (on the sourced PYTHONPATH) use a hook pytest 8 removed: off for every project.
+# Runs as root or as the host user (--user, no passwd entry): HOME, USER (torch asks getpass), the LIBERO config and
+# the Warp kernel cache work for both.
 ENV PATH=/opt/venvs/mjlab/bin:$PATH MUJOCO_GL=egl PYOPENGL_PLATFORM=egl NVIDIA_DRIVER_CAPABILITIES=all \
-    PYTEST_ADDOPTS="-p no:launch_testing -p no:launch_ros"
+    PYTEST_ADDOPTS="-p no:launch_testing -p no:launch_ros" \
+    HOME=/tmp USER=developer LIBERO_CONFIG_PATH=/etc/libero WARP_CACHE_PATH=/cache/warp
 WORKDIR /workspace
 CMD ["bash"]

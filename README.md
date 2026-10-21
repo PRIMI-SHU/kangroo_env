@@ -27,21 +27,23 @@ docker build -t robot-learning .
 **Start: headless** (no window, `--rm` deletes the container on exit; only files in the mounted repo stay):
 
 ```bash
-docker run --rm -it --gpus all \
+mkdir -p ~/.cache/warp
+docker run --rm -it --gpus all --user "$(id -u):$(id -g)" \
   -v "$PWD:/opt/robot-learning" -w /opt/robot-learning \
-  -v "$HOME/.cache/warp:/root/.cache/warp" \
+  -v "$HOME/.cache/warp:/cache/warp" \
   robot-learning
 ```
 
 **Start: with a display** (Linux desktop, X11 or Wayland). The container is kept, so you can come back to it:
 
 ```bash
-xhost +SI:localuser:root                                 # let the container's root user open windows
-docker run -it --name robot-learning-gui --gpus all --device /dev/dri \
+xhost +SI:localuser:$USER                                # let your user open windows from the container
+docker run -it --name robot-learning-gui --gpus all --user "$(id -u):$(id -g)" \
+  --device /dev/dri --group-add "$(getent group render | cut -d: -f3)" \
   -e DISPLAY=$DISPLAY -e MUJOCO_GL=glfw -e PYOPENGL_PLATFORM= \
   -v /tmp/.X11-unix:/tmp/.X11-unix \
   -v "$PWD:/opt/robot-learning" -w /opt/robot-learning \
-  -v "$HOME/.cache/warp:/root/.cache/warp" \
+  -v "$HOME/.cache/warp:/cache/warp" \
   robot-learning
 ```
 
@@ -55,24 +57,24 @@ Come back to the same container later with `docker start -ai robot-learning-gui`
 reboot) and run the simulation again the same way. Remove it with `docker rm robot-learning-gui`.
 
 Both start in bash, in this repo, with ROS sourced and the mjlab venv active. The repo is mounted over
-`/opt/robot-learning`, so host edits are live without a rebuild. The warp-cache mount keeps compiled GPU
-kernels (the first GPU run compiles for ~4 min).
+`/opt/robot-learning`, so host edits are live without a rebuild. `--user` runs as you, so files the container writes
+are yours (the prompt shows `I have no name!`, which is harmless). The warp-cache mount keeps compiled GPU kernels
+(the first GPU run compiles for ~4 min).
 
 **Run the tests** (inside the container):
 
 ```bash
-pytest -q tests                                          # 18 passed
+pytest -q tests                                          # 21 passed
 ```
 
 **Record a video in one command** (headless, from the host; writes `out/kangaroo.mp4`):
 
 ```bash
-docker run --rm --gpus all -v "$PWD:/opt/robot-learning" -w /opt/robot-learning \
+docker run --rm --gpus all --user "$(id -u):$(id -g)" -v "$PWD:/opt/robot-learning" -w /opt/robot-learning \
   robot-learning python -m kangaroo_seated.view --video out/kangaroo.mp4 --seconds 5
 ```
 
 - No NVIDIA GPU: drop `--gpus all` (the Warp test skips); if headless rendering fails, add `-e MUJOCO_GL=osmesa -e PYOPENGL_PLATFORM=osmesa`.
-- Files the container writes into the repo (`out/`, `__pycache__`) are owned by root on the host.
 
 ## 2. Build your own work on it
 
@@ -93,7 +95,8 @@ print("right palm at", d.body("robot/hand_right_palm_link").xpos, "cup at", d.bo
 **Move to mjlab for RL / many parallel envs on the GPU.** `make_scene_cfg(num_envs=N)` is the same scene as an
 mjlab `SceneCfg`; put it in your env config as `cfg.scene`. The closest template is PAL's Kangaroo reaching
 task, `pal_mjlab/src/pal_mjlab/tasks/reaching/`, without its locomotion terms (the legs here are locked). Use
-the `mdp.reset_scene_to_default` reset event so the robot starts seated. See [pal_mjlab's README](https://github.com/pal-robotics/pal_mjlab)
+the `mdp.reset_scene_to_default` reset event so the robot starts seated, and set `cfg.sim.nconmax = 128`,
+`cfg.sim.njmax = 600` (the forearms on the table give ~55 contacts; mjlab's default sizing overflows and crashes). See [pal_mjlab's README](https://github.com/pal-robotics/pal_mjlab)
 for `list-envs`, `play` and `train`.
 
 **ROS 2:** `ros2` and `rclpy` work in every shell, so a node can read or drive the simulation; nothing is wired up yet.
@@ -127,7 +130,8 @@ Good to know:
 
 - Every robot joint is held by pal_mjlab's position actuators (`d.ctrl` = target angles, starting at the pose);
   legs and trunk are also locked so the robot stays seated.
-- The objects stand 15 cm apart, 40 cm from the table's front edge: about 80% of the arm's reach.
+- The objects stand 15 cm apart, 40 cm from the table's front edge: about 80% of the arm's reach. Masses are real:
+  cup 0.35 kg, full bottle 0.5 kg, apple 68 g.
 - The hands are rigid (pal_mjlab has no finger joints): objects can be pushed, not grasped.
 - Reset in plain MuJoCo with `mujoco.mj_resetDataKeyframe(m, d, m.key("init_state").id)`.
 - Never edit `pal_mjlab/` or `LIBERO/`: they are pinned upstream clones; `setup.sh` and a rebuild refresh them.
@@ -148,8 +152,13 @@ tests/                pytest suite, including a check that another project can u
 
 ## Sources
 
-- Seated setup (pose, table, chair, object layout): `seated_setup_for_libero`, `seated_setup.json` version 2026-10-19.
+- Seated setup (pose, table, chair, object layout): the lab's `seated_setup_for_libero` (not published), version 2026-10-19,
+  included here as `kangaroo_seated/seated_setup.json`; `scene.py` lists every change made to it.
 - Kangaroo: [pal_mjlab](https://github.com/pal-robotics/pal_mjlab) (Apache 2.0). LIBERO: [Lifelong-Robot-Learning/LIBERO](https://github.com/Lifelong-Robot-Learning/LIBERO) (MIT).
 - Cup: Google Scanned Objects "Cole_Hardware_Mug_Classic_Blue" (CC BY 4.0, Google Research), via [mujoco_scanned_objects](https://github.com/kevinzakka/mujoco_scanned_objects).
 - Bottle: [robosuite](https://github.com/ARISE-Initiative/robosuite) v1.5.2 (MIT).
 - Apple: [YCB Object and Model Set](https://www.ycbbenchmarks.com/) "013_apple" (CC BY 4.0); B. Calli et al., IEEE Robotics & Automation Magazine, 2015.
+
+## License
+
+MIT for this repo's own files ([LICENSE](LICENSE)); the sources above keep their own licences.

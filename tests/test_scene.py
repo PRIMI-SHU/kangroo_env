@@ -91,3 +91,22 @@ def test_each_object_reachable():
     for o in OBJECTS:
         best = min(min_palm_distance(m, d, s, d.body(f"{o}/{o}").xpos.copy()) for s in ("left", "right"))
         assert best < 0.10, (o, best)
+
+def test_object_masses_are_real():
+    m, _ = make_model()
+    for o, kg in {"cup": 0.35, "bottle": 0.5, "apple": 0.068}.items():
+        assert abs(m.body_subtreemass[m.body(f"{o}/{o}").id] - kg) < 1e-6, o
+
+def test_robot_not_inside_furniture():
+    m, d = make_model()
+    for c in d.contact[:d.ncon]:
+        names = bodies(m, c)
+        if names & {"chair/chair", "table/table"} and any(n.startswith("robot/") for n in names):
+            assert c.dist > -0.002, (names, c.dist)
+
+def test_forearms_lie_on_table():
+    m, d = make_model()
+    for s in ("left", "right"):
+        for part in (f"arm_{s}_4_link", f"arm_{s}_5_link", f"hand_{s}"):
+            gs = [g for g in range(m.ngeom) if re.fullmatch(f"robot/{part}.*_collision", m.geom(g).name)]
+            assert 0 < lowest_z(m, d, gs) - SETUP["table"]["top_z"] < 0.003, part
